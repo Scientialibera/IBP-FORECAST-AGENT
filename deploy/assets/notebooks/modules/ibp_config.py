@@ -5,8 +5,9 @@
 
 IBP_CONFIG = {
     # ── Data Schema ──────────────────────────────────────────────
-    "date_column":       "period_date",
-    "frequency":         "M",
+    "date_column":              "period_date",
+    "feature_date_column":      "period",
+    "frequency":                "M",
     "target_column":     "tons",
     "grain_columns":     ["plant_id", "sku_id"],
     "extended_grains":   ["plant_id", "sku_group", "customer_id", "market_id"],

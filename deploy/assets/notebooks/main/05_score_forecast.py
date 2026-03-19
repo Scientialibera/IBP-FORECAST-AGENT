@@ -13,7 +13,7 @@ gold_lakehouse_id = ""
 
 import pandas as pd
 
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")

@@ -10,7 +10,7 @@ silver_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/train_prophet_module
 
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")

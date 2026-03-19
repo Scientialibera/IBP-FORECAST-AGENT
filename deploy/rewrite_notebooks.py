@@ -311,7 +311,7 @@ nb("04_train_sarima",
    ["silver_lakehouse_id"],
    ["ibp_config", "config_module", "utils_module", "train_sarima_module"],
    '''
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
@@ -347,7 +347,7 @@ nb("04_train_prophet",
    ["silver_lakehouse_id"],
    ["ibp_config", "config_module", "utils_module", "train_prophet_module"],
    '''
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
@@ -384,7 +384,7 @@ nb("04_train_var",
    ["silver_lakehouse_id"],
    ["ibp_config", "config_module", "utils_module", "train_var_module"],
    '''
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")
@@ -421,7 +421,7 @@ nb("04_train_exp_smoothing",
    ["silver_lakehouse_id"],
    ["ibp_config", "config_module", "utils_module", "train_exp_smoothing_module"],
    '''
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
@@ -460,7 +460,7 @@ nb("05_score_forecast",
    '''
 import pandas as pd
 
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")
@@ -642,7 +642,7 @@ forecast_table = cfg("output_table")
 accuracy_table = cfg("accuracy_table")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 
 print("[accuracy] Tracking forecast accuracy.")
 track_accuracy(spark, gold_lakehouse_id, bronze_lakehouse_id,

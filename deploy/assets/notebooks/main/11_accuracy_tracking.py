@@ -15,7 +15,7 @@ forecast_table = cfg("output_table")
 accuracy_table = cfg("accuracy_table")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 
 print("[accuracy] Tracking forecast accuracy.")
 track_accuracy(spark, gold_lakehouse_id, bronze_lakehouse_id,

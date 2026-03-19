@@ -10,7 +10,7 @@ silver_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/train_var_module
 
-date_column = cfg("date_column")
+date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")

@@ -1,0 +1,64 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "00_generate_test_data",
+        "type": "TridentNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "deb99828-7742-4525-a2d9-6b803c71e462",
+          "workspaceId": "WORKSPACE_ID_PLACEHOLDER",
+          "parameters": {
+            "source_lakehouse_id": {
+              "value": {
+                "value": "@pipeline().parameters.source_lakehouse_id",
+                "type": "Expression"
+              },
+              "type": "string"
+            },
+            "n_skus": {
+              "value": "50",
+              "type": "string"
+            },
+            "n_plants": {
+              "value": "5",
+              "type": "string"
+            },
+            "n_customers": {
+              "value": "20",
+              "type": "string"
+            },
+            "n_markets": {
+              "value": "4",
+              "type": "string"
+            },
+            "n_production_lines": {
+              "value": "10",
+              "type": "string"
+            },
+            "history_months": {
+              "value": "42",
+              "type": "string"
+            },
+            "seed": {
+              "value": "42",
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "source_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "4cd508fe-2f57-4295-8a59-36eb184b78c9"
+      }
+    },
+    "annotations": []
+  }
+}
