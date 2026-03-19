@@ -11,6 +11,12 @@ gold_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/scoring_module
 
+try:
+    import mlflow
+    mlflow.autolog(disable=True)
+except Exception:
+    pass
+
 import pandas as pd
 
 date_column = cfg("feature_date_column")

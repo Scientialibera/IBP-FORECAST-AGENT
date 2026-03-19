@@ -39,24 +39,53 @@ When deployed, everything nests under a single project folder in the Fabric work
 ```
 IBP Forecast/
   data/
-    lh_ibp_source          ← source data (or test data)
-    lh_ibp_landing
-    lh_ibp_bronze
-    lh_ibp_silver
-    lh_ibp_gold
+    lh_ibp_source              ← source data (or test data)
+    lh_ibp_landing             ← raw snapshot copies
+    lh_ibp_bronze              ← deduplicated, cleansed
+    lh_ibp_silver              ← features, predictions, raw forecasts
+    lh_ibp_gold                ← versioned forecasts, accuracy, capacity, budgets
   notebooks/
     main/
-      00_generate_test_data  ← synthetic data for E2E testing
+      00_generate_test_data    ← synthetic data for E2E testing
       01_ingest_sources
-      ...
+      02_transform_bronze
+      03_feature_engineering
+      04_train_sarima          ← 4 training notebooks run in parallel
+      04_train_prophet
+      04_train_var
+      04_train_exp_smoothing
+      05_score_forecast
+      06_version_snapshot
+      07_demand_to_capacity
+      08_sales_overrides
+      09_market_adjustments
+      10_consensus_build
+      11_accuracy_tracking
+      12_aggregate_gold
       13_budget_comparison
       P2_01_external_signals
-      ...
+      P2_02_scenario_modeling
+      P2_03_sku_classification
       P2_04_inventory_alignment
     modules/
-      config_module
-      utils_module
-      ...
+      ibp_config               ← centralized parameters
+      config_module            ← lakehouse I/O, path helpers
+      utils_module             ← metrics, MLflow helpers
+      feature_engineering_module
+      train_sarima_module
+      train_prophet_module
+      train_var_module
+      train_exp_smoothing_module
+      scoring_module
+      versioning_module
+      capacity_module
+      override_module
+      accuracy_module
+  pipelines/
+    pl_ibp_seed_test_data
+    pl_ibp_phase1_core
+    pl_ibp_phase2_advanced
+  ibp_demand_forecast          ← MLflow Experiment
 ```
 
 ## Notebook Execution Order
