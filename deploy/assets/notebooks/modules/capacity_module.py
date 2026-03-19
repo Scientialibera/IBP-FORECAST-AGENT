@@ -1,5 +1,31 @@
-# Fabric Notebook -- Module
+# Fabric notebook source
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
+# METADATA ********************
+
+# CELL ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
 # capacity_module.py -- Demand-to-capacity translation: tons -> lineal feet -> production hours
+
+# CELL ********************
 
 import pandas as pd
 import numpy as np
@@ -71,3 +97,17 @@ def translate_demand_to_capacity(forecast_df: pd.DataFrame,
     )
 
     return merged
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

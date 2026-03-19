@@ -1,8 +1,61 @@
-# Fabric Notebook
+# Fabric notebook source
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
+# METADATA ********************
+
+# CELL ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
 # 00_generate_test_data.py -- Generate realistic synthetic data for end-to-end testing
 # Writes all source tables to the source lakehouse so notebooks 01-13 + P2 can run.
 
-# %run ../modules/config_module
+# CELL ********************
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+%run config_module
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# CELL ********************
 
 import pandas as pd
 import numpy as np
@@ -319,3 +372,17 @@ print(f"  Customers: {N_CUSTOMERS}, Markets: {N_MARKETS}")
 print(f"  Source lakehouse: {source_lakehouse_id}")
 print(f"{'='*60}")
 print(f"\nNext: Run 01_ingest_sources with source_lakehouse_id={source_lakehouse_id}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

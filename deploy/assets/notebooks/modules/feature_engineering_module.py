@@ -1,5 +1,31 @@
-# Fabric Notebook -- Module
+# Fabric notebook source
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
+# METADATA ********************
+
+# CELL ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
 # feature_engineering_module.py -- Feature table construction for IBP forecasting
+
+# CELL ********************
 
 import pandas as pd
 import numpy as np
@@ -74,3 +100,17 @@ def build_feature_table(df: pd.DataFrame, date_column: str, grain_columns: list,
     result = add_rolling_features(result, grain_columns, target_column)
     result = add_calendar_features(result)
     return result
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

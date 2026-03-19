@@ -1,5 +1,31 @@
-# Fabric Notebook -- Module
+# Fabric notebook source
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
+# METADATA ********************
+
+# CELL ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
 # train_exp_smoothing_module.py -- Exponential Smoothing (Holt-Winters) per grain
+
+# CELL ********************
 
 import warnings
 import pandas as pd
@@ -96,3 +122,17 @@ def train_exp_smoothing_per_grain(df: pd.DataFrame, date_column: str, grain_colu
 
     print(f"[exp_smoothing] Complete. {len(results)} prediction rows, avg MAPE={agg_metrics.get('mape', 'N/A')}")
     return pd.DataFrame(results), agg_metrics
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }

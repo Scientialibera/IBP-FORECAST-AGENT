@@ -4,7 +4,7 @@
 # ──────────────────────────────────────────────────────────────────
 
 [fabric]
-workspace_id   = ""
+workspace_id   = "WORKSPACE_ID_PLACEHOLDER"
 workspace_name = "Aura Bot"
 
 [naming]

@@ -1,5 +1,31 @@
-# Fabric Notebook -- Module
+# Fabric notebook source
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
+# METADATA ********************
+
+# CELL ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   },
+# META   "dependencies": {}
+# META }
+
+# MARKDOWN ********************
+
 # utils_module.py -- Metrics, time splits, MLflow helpers
+
+# CELL ********************
 
 import numpy as np
 import pandas as pd
@@ -67,3 +93,17 @@ def ensure_experiment(experiment_name: str) -> None:
         mlflow.set_experiment(experiment_name)
     except Exception as e:
         print(f"[mlflow] Warning: could not set experiment '{experiment_name}': {e}")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
