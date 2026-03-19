@@ -1,0 +1,156 @@
+# ──────────────────────────────────────────────────────────────────
+# IBP Forecast Agent -- Deployment Configuration
+# Client: Coil Coaters (Gerry's IBP requirements)
+# ──────────────────────────────────────────────────────────────────
+
+[fabric]
+workspace_id = ""
+
+[naming]
+prefix = "ibp_forecast"
+
+# ── Lakehouses ───────────────────────────────────────────────────
+# Leave IDs empty to auto-create; set to skip creation.
+
+[lakehouses]
+landing_name  = "lh_ibp_landing"
+landing_id    = ""
+bronze_name   = "lh_ibp_bronze"
+bronze_id     = ""
+silver_name   = "lh_ibp_silver"
+silver_id     = ""
+gold_name     = "lh_ibp_gold"
+gold_id       = ""
+
+# ── Source Data ──────────────────────────────────────────────────
+
+[source]
+source_lakehouse_id   = ""
+source_lakehouse_name = ""
+tables = [
+    "orders",
+    "shipments",
+    "production_history",
+    "master_sku",
+    "master_plant",
+    "master_customer",
+    "master_market",
+    "budget_volumes",
+    "inventory_finished_goods",
+    "production_lines",
+]
+
+# ── Feature Engineering ──────────────────────────────────────────
+
+[features]
+date_column     = "period_date"
+frequency       = "M"
+target_column   = "tons"
+grain_columns   = ["plant_id", "sku_id"]
+extended_grains = ["plant_id", "sku_group", "customer_id", "market_id"]
+feature_columns = ["price_per_ton", "lead_time_days", "promo_flag", "safety_stock_tons"]
+feature_types   = ["float", "float", "int", "float"]
+
+# ── Training ─────────────────────────────────────────────────────
+
+[training]
+test_split_ratio          = 0.2
+min_series_length         = 24
+
+# SARIMA (required)
+sarima_order              = [1, 1, 1]
+sarima_seasonal_order     = [1, 1, 1, 12]
+
+# Prophet (required)
+prophet_yearly_seasonality  = true
+prophet_weekly_seasonality  = false
+prophet_changepoint_prior   = 0.05
+
+# VAR (preferred)
+var_maxlags               = 12
+var_ic                    = "aic"
+
+# Exponential Smoothing (preferred)
+exp_smoothing_trend             = "add"
+exp_smoothing_seasonal          = "add"
+exp_smoothing_seasonal_periods  = 12
+
+[mlflow]
+experiment_name          = "ibp_demand_forecast"
+registered_model_prefix  = "ibp_model"
+
+# ── Scoring ──────────────────────────────────────────────────────
+
+[scoring]
+forecast_horizon  = 6
+output_table      = "forecast_versions"
+metrics_table     = "model_metrics"
+
+# ── Forecast Versioning ──────────────────────────────────────────
+
+[versioning]
+snapshot_table     = "forecast_versions"
+accuracy_table     = "accuracy_tracking"
+keep_n_snapshots   = 24
+
+# ── Capacity Translation ─────────────────────────────────────────
+# tons -> lineal feet -> production hours
+
+[capacity]
+output_table              = "capacity_translation"
+production_history_table  = "production_history"
+rolling_months            = 3
+tons_to_lf_factor         = 2000
+width_column              = "width_inches"
+speed_column              = "line_speed_fpm"
+line_id_column            = "line_id"
+
+# ── Sales Overrides ──────────────────────────────────────────────
+
+[overrides]
+overrides_table           = "sales_overrides"
+override_output_table     = "forecast_versions"
+
+# ── Market Adjustments ───────────────────────────────────────────
+
+[market_adjustments]
+adjustments_table         = "market_adjustments"
+default_scale_factor      = 1.0
+
+# ── Budget Comparison ────────────────────────────────────────────
+
+[budget]
+budget_table              = "budget_volumes"
+comparison_output_table   = "budget_comparison"
+over_forecast_threshold   = 0.10
+under_forecast_threshold  = -0.10
+
+# ── Hierarchy (drill-down levels) ────────────────────────────────
+
+[hierarchy]
+levels = ["market_id", "plant_id", "sku_group", "sku_id", "customer_id"]
+
+# ── Phase 2: External Signals ────────────────────────────────────
+
+[external_signals]
+enabled               = false
+signals_table         = "external_signals"
+signal_columns        = ["construction_index", "interest_rate", "inflation_rate", "tariff_rate"]
+
+# ── Phase 2: Scenario Modeling ───────────────────────────────────
+
+[scenarios]
+enabled               = false
+scenarios_table       = "scenario_definitions"
+default_scenarios     = ["ncca_only", "ncca_plus_imports"]
+
+# ── Phase 2: SKU Classification ──────────────────────────────────
+
+[sku_classification]
+enabled               = false
+output_table          = "sku_classifications"
+abc_volume_column     = "tons"
+xyz_cv_threshold_x    = 0.5
+xyz_cv_threshold_y    = 1.0
+runner_threshold      = 0.8
+repeater_threshold    = 0.95
