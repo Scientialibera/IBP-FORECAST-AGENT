@@ -637,10 +637,17 @@ scale = cfg("default_scale_factor")
 
 import pandas as pd
 
-print("[market] Loading forecast and market adjustments.")
+print("[market] Loading forecast, orders (for market mapping), and adjustments.")
 fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
 adj_df = read_lakehouse_table(spark, bronze_lakehouse_id, adj_table).toPandas()
 print(f"[market] Forecast: {len(fc_df)} rows, Adjustments: {len(adj_df)} rows")
+
+if "market_id" not in fc_df.columns:
+    orders_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders").toPandas()
+    market_map = orders_df[["plant_id", "sku_id", "market_id"]].drop_duplicates()
+    market_map = market_map.groupby(["plant_id", "sku_id"])["market_id"].first().reset_index()
+    fc_df = fc_df.merge(market_map, on=["plant_id", "sku_id"], how="left")
+    print(f"[market] Enriched forecast with market_id from orders")
 
 period_col = "period" if "period" in fc_df.columns else "period_date"
 if period_col == "period" and "period" not in adj_df.columns and "period_date" in adj_df.columns:
