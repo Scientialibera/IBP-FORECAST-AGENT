@@ -321,7 +321,13 @@ foreach ($entry in @(
 }
 $sourceId = $lakehouseIds["source"]; $landingId = $lakehouseIds["landing"]; $bronzeId = $lakehouseIds["bronze"]; $silverId = $lakehouseIds["silver"]; $goldId = $lakehouseIds["gold"]
 
-# 3. Convert notebooks (plain .py → Fabric format, output to build/)
+# 3a. Rewrite main notebooks (inject parameter cells + cfg() calls)
+Write-Host "`n[3.5/8] Rewriting main notebooks with enterprise config..." -ForegroundColor Yellow
+$rewriteScript = Join-Path $PSScriptRoot "rewrite_notebooks.py"
+python $rewriteScript
+if ($LASTEXITCODE -ne 0) { throw "rewrite_notebooks.py failed" }
+
+# 3b. Convert notebooks (plain .py → Fabric format, output to build/)
 $buildDir = Join-Path (Join-Path $PSScriptRoot "build") "notebooks"
 Write-Host "`n[4/8] Converting notebooks with lakehouse bindings..." -ForegroundColor Yellow
 $convertScript = Join-Path $PSScriptRoot "convert_notebooks.py"

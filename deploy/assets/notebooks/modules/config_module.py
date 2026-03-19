@@ -39,12 +39,7 @@ def read_lakehouse_table(spark_session, lakehouse_id: str, table_name: str):
 
 
 def write_lakehouse_table(df, lakehouse_id: str, table_name: str, mode: str = "overwrite"):
-    """Write as managed Delta table via saveAsTable for proper catalog registration."""
-    try:
-        if mode == "overwrite":
-            spark.sql(f"DROP TABLE IF EXISTS `{table_name}`")
-        df.write.format("delta").mode(mode).option("overwriteSchema", "true").saveAsTable(table_name)
-    except Exception as e:
-        print(f"  [warn] saveAsTable failed for '{table_name}', falling back to path write: {e}")
-        path = lakehouse_table_path(lakehouse_id, table_name)
-        df.write.format("delta").mode(mode).option("overwriteSchema", "true").save(path)
+    """Write Delta to the explicit lakehouse path (Tables/) so it lands in the correct lakehouse.
+    saveAsTable only targets the default lakehouse; path-based writes respect lakehouse_id."""
+    path = lakehouse_table_path(lakehouse_id, table_name)
+    df.write.format("delta").mode(mode).option("overwriteSchema", "true").save(path)

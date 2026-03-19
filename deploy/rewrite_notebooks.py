@@ -136,10 +136,14 @@ print(f"  shipments: {len(shipments_rows)} rows")
 
 prod_rows = []
 for line in lines_data:
+    plant_skus = [s for s in skus if plants[hash(s["sku_id"]) % N_PLANTS] == line["plant_id"]]
+    if not plant_skus:
+        plant_skus = skus[:3]
     for date in dates:
+        sku = plant_skus[hash(str(date)) % len(plant_skus)]
         prod_rows.append({
             "period_date": str(date.date()), "line_id": line["line_id"],
-            "plant_id": line["plant_id"],
+            "plant_id": line["plant_id"], "sku_id": sku["sku_id"],
             "produced_tons": round(np.random.uniform(500, 3000), 2),
             "line_speed_fpm": round(line["max_speed_fpm"] * np.random.uniform(0.7, 1.0), 1),
             "width_inches": round(line["max_width_inches"] * np.random.uniform(0.8, 1.0), 1),
@@ -536,8 +540,16 @@ output_table = cfg("output_table")
 keep_n = cfg("keep_n_snapshots")
 
 print(f"[version] Creating snapshot in gold.{output_table}")
-create_forecast_snapshot(spark, silver_lakehouse_id, gold_lakehouse_id,
-                         output_table=output_table, keep_n=keep_n)
+raw_df = read_lakehouse_table(spark, silver_lakehouse_id, "raw_forecasts").toPandas()
+print(f"[version] Read {len(raw_df)} raw forecast rows from silver")
+
+if raw_df.empty:
+    print("[version] WARNING: No raw forecasts to snapshot.")
+else:
+    versioned, vid = stamp_forecast_version(raw_df, version_type="system")
+    print(f"[version] Stamped version {vid}, {len(versioned)} rows")
+    append_versioned_forecast(spark, gold_lakehouse_id, output_table, versioned)
+    purge_old_snapshots(spark, gold_lakehouse_id, output_table, keep_n=keep_n)
 print("[version] Complete.")
 ''')
 
@@ -552,17 +564,32 @@ nb("07_demand_to_capacity",
 forecast_table = cfg("output_table")
 capacity_output = cfg("capacity_output_table")
 prod_table = cfg("production_history_table")
-grain_columns = cfg("grain_columns")
+width_col = cfg("width_column")
+speed_col = cfg("speed_column")
+line_id_col = cfg("line_id_column")
+rolling_months = cfg("rolling_months")
+tons_to_lf = cfg("tons_to_lf_factor")
 
-print("[capacity] Translating demand to capacity.")
-translate_demand_to_capacity(
-    spark, gold_lakehouse_id, bronze_lakehouse_id,
-    forecast_table=forecast_table, capacity_output_table=capacity_output,
-    production_table=prod_table, grain_columns=grain_columns,
-    rolling_months=cfg("rolling_months"), tons_to_lf_factor=cfg("tons_to_lf_factor"),
-    width_column=cfg("width_column"), speed_column=cfg("speed_column"),
-    line_id_column=cfg("line_id_column"),
+print("[capacity] Loading forecast and production data.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+prod_df = read_lakehouse_table(spark, bronze_lakehouse_id, prod_table).toPandas()
+print(f"[capacity] Forecast: {len(fc_df)} rows, Production: {len(prod_df)} rows")
+
+prod_avgs = compute_rolling_production_averages(
+    prod_df, width_column=width_col, speed_column=speed_col,
+    line_id_column=line_id_col, plant_column="plant_id",
+    sku_column="sku_id", date_column="period_date",
+    rolling_months=rolling_months,
 )
+print(f"[capacity] Computed rolling averages: {len(prod_avgs)} rows")
+
+capacity_df = translate_demand_to_capacity(
+    fc_df, prod_avgs,
+    plant_column="plant_id", sku_column="sku_id",
+    line_id_column=line_id_col, tons_to_lf_factor=tons_to_lf,
+)
+write_lakehouse_table(spark.createDataFrame(capacity_df), gold_lakehouse_id, capacity_output, mode="overwrite")
+print(f"[capacity] Wrote {len(capacity_df)} capacity rows")
 print("[capacity] Complete.")
 ''')
 
@@ -572,16 +599,23 @@ print("[capacity] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("08_sales_overrides",
    ["gold_lakehouse_id", "bronze_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "override_module"],
+   ["ibp_config", "config_module", "utils_module", "override_module", "versioning_module"],
    '''
 forecast_table = cfg("output_table")
 overrides_table = cfg("overrides_table")
 grain_columns = cfg("grain_columns")
 
-print("[overrides] Applying sales overrides.")
-apply_sales_overrides(spark, gold_lakehouse_id, bronze_lakehouse_id,
-                      forecast_table=forecast_table, overrides_table=overrides_table,
-                      grain_columns=grain_columns)
+print("[overrides] Loading forecast and overrides data.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+overrides_df = read_lakehouse_table(spark, bronze_lakehouse_id, overrides_table).toPandas()
+print(f"[overrides] Forecast: {len(fc_df)} rows, Overrides: {len(overrides_df)} rows")
+
+period_col = "period" if "period" in fc_df.columns else "period_date"
+result = apply_sales_overrides(fc_df, overrides_df, grain_columns=grain_columns, period_column=period_col)
+
+versioned, vid = stamp_forecast_version(result, version_type="sales_override")
+append_versioned_forecast(spark, gold_lakehouse_id, forecast_table, versioned)
+print(f"[overrides] Wrote {len(versioned)} override rows (version {vid})")
 print("[overrides] Complete.")
 ''')
 
@@ -591,17 +625,24 @@ print("[overrides] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("09_market_adjustments",
    ["gold_lakehouse_id", "bronze_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "override_module"],
+   ["ibp_config", "config_module", "utils_module", "override_module", "versioning_module"],
    '''
 forecast_table = cfg("output_table")
 adj_table = cfg("adjustments_table")
 scale = cfg("default_scale_factor")
-grain_columns = cfg("grain_columns")
 
-print("[market] Applying market adjustments.")
-apply_market_adjustments(spark, gold_lakehouse_id, bronze_lakehouse_id,
-                         forecast_table=forecast_table, adjustments_table=adj_table,
-                         default_scale_factor=scale, grain_columns=grain_columns)
+print("[market] Loading forecast and market adjustments.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+adj_df = read_lakehouse_table(spark, bronze_lakehouse_id, adj_table).toPandas()
+print(f"[market] Forecast: {len(fc_df)} rows, Adjustments: {len(adj_df)} rows")
+
+period_col = "period" if "period" in fc_df.columns else "period_date"
+result = apply_market_adjustments(fc_df, adj_df, market_column="market_id",
+                                  period_column=period_col, default_factor=scale)
+
+versioned, vid = stamp_forecast_version(result, version_type="market_adjusted")
+append_versioned_forecast(spark, gold_lakehouse_id, forecast_table, versioned)
+print(f"[market] Wrote {len(versioned)} adjusted rows (version {vid})")
 print("[market] Complete.")
 ''')
 
@@ -611,22 +652,29 @@ print("[market] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("10_consensus_build",
    ["gold_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module"],
+   ["ibp_config", "config_module", "utils_module", "override_module"],
    '''
 forecast_table = cfg("output_table")
 grain_columns = cfg("grain_columns")
 
 print("[consensus] Building consensus forecast.")
-fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
-pdf = fc_df.toPandas()
+all_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+print(f"[consensus] Total versioned rows: {len(all_df)}")
 
-grain_key = grain_columns + ["period_date"] if "period_date" in pdf.columns else grain_columns
-numeric_cols = pdf.select_dtypes(include="number").columns.tolist()
-consensus = pdf.groupby(grain_key, as_index=False)[numeric_cols].mean()
-consensus["forecast_type"] = "consensus"
+if all_df.empty:
+    print("[consensus] WARNING: No forecast data.")
+else:
+    system_df = all_df[all_df["version_type"] == "system"] if "version_type" in all_df.columns else all_df
+    sales_df = all_df[all_df["version_type"] == "sales_override"] if "version_type" in all_df.columns else None
+    market_df = all_df[all_df["version_type"] == "market_adjusted"] if "version_type" in all_df.columns else None
 
-write_lakehouse_table(spark.createDataFrame(consensus), gold_lakehouse_id, "consensus_forecast", mode="overwrite")
-print(f"[consensus] {len(consensus)} consensus rows written.")
+    period_col = "period" if "period" in system_df.columns else "period_date"
+    consensus = build_consensus(system_df, sales_df, market_df,
+                                grain_columns=grain_columns, period_column=period_col)
+    consensus["forecast_type"] = "consensus"
+
+    write_lakehouse_table(spark.createDataFrame(consensus), gold_lakehouse_id, "consensus_forecast", mode="overwrite")
+    print(f"[consensus] {len(consensus)} consensus rows written.")
 print("[consensus] Complete.")
 ''')
 
@@ -644,11 +692,33 @@ target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 date_column = cfg("feature_date_column")
 
-print("[accuracy] Tracking forecast accuracy.")
-track_accuracy(spark, gold_lakehouse_id, bronze_lakehouse_id,
-               forecast_table=forecast_table, accuracy_table=accuracy_table,
-               target_column=target_column, grain_columns=grain_columns,
-               date_column=date_column)
+import pandas as pd
+
+print("[accuracy] Loading forecast versions and actuals.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders").toPandas()
+print(f"[accuracy] Forecast: {len(fc_df)} rows, Actuals: {len(actuals_df)} rows")
+
+if "period" in fc_df.columns and "period" not in actuals_df.columns and "period_date" in actuals_df.columns:
+    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period("M").astype(str)
+    actuals_agg = actuals_df.groupby(grain_columns + [date_column], as_index=False)[target_column].sum()
+else:
+    actuals_agg = actuals_df
+
+if fc_df.empty or actuals_agg.empty:
+    print("[accuracy] WARNING: No data for accuracy tracking.")
+else:
+    accuracy_df = evaluate_forecast_accuracy(
+        fc_df, actuals_agg, grain_columns=grain_columns,
+        period_column=date_column, forecast_col="forecast_tons",
+        actual_col=target_column,
+    )
+    if not accuracy_df.empty:
+        write_lakehouse_table(spark.createDataFrame(accuracy_df), gold_lakehouse_id,
+                              accuracy_table, mode="overwrite")
+        print(f"[accuracy] Wrote {len(accuracy_df)} accuracy records")
+    else:
+        print("[accuracy] No matching forecast-actual pairs found")
 print("[accuracy] Complete.")
 ''')
 
@@ -698,23 +768,32 @@ budget_table = cfg("budget_table")
 comparison_output = cfg("comparison_output_table")
 over_thresh = cfg("over_forecast_threshold")
 under_thresh = cfg("under_forecast_threshold")
-hierarchy = cfg("hierarchy_levels")
+grain_columns = cfg("grain_columns")
 
 print("[budget] Comparing forecast vs budget.")
 fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
 budget_df = read_lakehouse_table(spark, bronze_lakehouse_id, budget_table).toPandas()
 
-common = list(set(fc_df.columns) & set(budget_df.columns) - {"tons", "budget_tons"})
-if common:
-    merged = fc_df.merge(budget_df, on=common, how="inner", suffixes=("_fc", "_bgt"))
-    if "tons" in merged.columns and "budget_tons" in merged.columns:
-        merged["variance_pct"] = (merged["tons"] - merged["budget_tons"]) / merged["budget_tons"].replace(0, float("nan"))
+if "period" in fc_df.columns and "period" not in budget_df.columns and "period_date" in budget_df.columns:
+    budget_df["period"] = pd.to_datetime(budget_df["period_date"]).dt.to_period("M").astype(str)
+
+merge_keys = [c for c in grain_columns + ["period"] if c in fc_df.columns and c in budget_df.columns]
+if not merge_keys:
+    merge_keys = [c for c in grain_columns + ["period_date"] if c in fc_df.columns and c in budget_df.columns]
+
+if merge_keys:
+    fc_agg = fc_df[fc_df.get("version_type", "system") == "system"] if "version_type" in fc_df.columns else fc_df
+    merged = fc_agg.merge(budget_df, on=merge_keys, how="inner", suffixes=("_fc", "_bgt"))
+    fc_col = "forecast_tons" if "forecast_tons" in merged.columns else "tons"
+    bgt_col = "budget_tons"
+    if fc_col in merged.columns and bgt_col in merged.columns:
+        merged["variance_pct"] = (merged[fc_col] - merged[bgt_col]) / merged[bgt_col].replace(0, float("nan"))
         merged["flag"] = merged["variance_pct"].apply(
             lambda v: "over" if v > over_thresh else ("under" if v < under_thresh else "ok"))
         write_lakehouse_table(spark.createDataFrame(merged), gold_lakehouse_id, comparison_output, mode="overwrite")
         print(f"[budget] {len(merged)} comparison rows")
     else:
-        print("[budget] Missing tons/budget_tons columns for comparison")
+        print(f"[budget] Missing forecast/budget cols. Have: {list(merged.columns[:15])}")
 else:
     print("[budget] No common columns for merge")
 print("[budget] Complete.")

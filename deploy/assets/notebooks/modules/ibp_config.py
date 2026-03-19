@@ -15,7 +15,9 @@ IBP_CONFIG = {
     "source_tables":     ["orders", "shipments", "production_history",
                           "master_sku", "master_plant", "master_customer",
                           "master_market", "budget_volumes",
-                          "inventory_finished_goods", "production_lines"],
+                          "inventory_finished_goods", "production_lines",
+                          "sales_overrides", "market_adjustments",
+                          "external_signals", "scenario_definitions"],
 
     # ── Forecasting ──────────────────────────────────────────────
     "forecast_horizon":    6,

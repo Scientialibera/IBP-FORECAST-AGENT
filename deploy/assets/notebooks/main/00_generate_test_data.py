@@ -111,10 +111,14 @@ print(f"  shipments: {len(shipments_rows)} rows")
 
 prod_rows = []
 for line in lines_data:
+    plant_skus = [s for s in skus if plants[hash(s["sku_id"]) % N_PLANTS] == line["plant_id"]]
+    if not plant_skus:
+        plant_skus = skus[:3]
     for date in dates:
+        sku = plant_skus[hash(str(date)) % len(plant_skus)]
         prod_rows.append({
             "period_date": str(date.date()), "line_id": line["line_id"],
-            "plant_id": line["plant_id"],
+            "plant_id": line["plant_id"], "sku_id": sku["sku_id"],
             "produced_tons": round(np.random.uniform(500, 3000), 2),
             "line_speed_fpm": round(line["max_speed_fpm"] * np.random.uniform(0.7, 1.0), 1),
             "width_inches": round(line["max_width_inches"] * np.random.uniform(0.8, 1.0), 1),
