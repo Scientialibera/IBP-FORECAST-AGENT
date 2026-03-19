@@ -61,9 +61,10 @@ def log_metrics_to_mlflow(metrics: dict, prefix: str = "") -> None:
 
 
 def ensure_experiment(experiment_name: str) -> None:
-    """Set or create MLflow experiment."""
+    """Set MLflow experiment and disable autologging to prevent per-fit run spam."""
     try:
         import mlflow
         mlflow.set_experiment(experiment_name)
+        mlflow.autolog(disable=True)
     except Exception as e:
         print(f"[mlflow] Warning: could not set experiment '{experiment_name}': {e}")

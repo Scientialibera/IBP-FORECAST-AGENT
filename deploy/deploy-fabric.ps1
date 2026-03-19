@@ -273,7 +273,26 @@ $pipelinesFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "
 $mainFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"      -ParentFolderId $notebooksFolderId
 $modulesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"   -ParentFolderId $notebooksFolderId
 
-# 2. Lakehouses
+# 2a. MLflow Experiment (inside project folder)
+Write-Host "`n  Creating MLflow experiment in project folder..." -ForegroundColor Yellow
+$experimentName = $config.mlflow.experiment_name
+if (-not [string]::IsNullOrWhiteSpace($experimentName)) {
+    $existing = Get-FabricItems -WorkspaceId $workspaceId -Type "MLExperiment" | Where-Object { $_.displayName -eq $experimentName } | Select-Object -First 1
+    if (-not $existing) {
+        try {
+            $body = @{ displayName = $experimentName; type = "MLExperiment" }
+            if ($projectFolderId) { $body.folderId = $projectFolderId }
+            Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body | Out-Null
+            Write-Host "  Experiment '$experimentName' -- created in '$projectFolderName/'"
+        } catch {
+            Write-Warning "  Experiment '$experimentName' -- FAILED: $_"
+        }
+    } else {
+        Write-Host "  Experiment '$experimentName' -- exists: $($existing.id)"
+    }
+}
+
+# 2b. Lakehouses
 Write-Host "`n[3/8] Creating lakehouses..." -ForegroundColor Yellow
 $lakehouseIds = @{}
 foreach ($entry in @(
