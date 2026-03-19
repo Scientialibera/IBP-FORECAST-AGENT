@@ -276,7 +276,33 @@ $experimentsFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName
 $mainFolderId        = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"        -ParentFolderId $notebooksFolderId
 $modulesFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"     -ParentFolderId $notebooksFolderId
 
-# 2b. Lakehouses
+# 2b. MLflow Experiment (infrastructure -- must exist in experiments/ before notebooks run)
+$experimentName = $config.mlflow.experiment_name
+if (-not [string]::IsNullOrWhiteSpace($experimentName)) {
+    $existingExp = Get-FabricItems -WorkspaceId $workspaceId -Type "MLExperiment" | Where-Object { $_.displayName -eq $experimentName }
+    $inFolder = $null
+    foreach ($e in $existingExp) {
+        $detail = Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items/$($e.id)" -Method GET -Headers @{ Authorization = "Bearer $(Get-FabricToken)" }
+        if ($detail.folderId -eq $experimentsFolderId) {
+            $inFolder = $e
+            Write-Host "  Experiment '$experimentName' -- exists in experiments/: $($e.id)"
+        } else {
+            Write-Host "  Deleting stale experiment '$experimentName' at wrong location (folder: $($detail.folderId))..."
+            try { Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items/$($e.id)" -Method DELETE -Headers @{ Authorization = "Bearer $(Get-FabricToken)" } } catch {}
+        }
+    }
+    if (-not $inFolder) {
+        try {
+            $body = @{ displayName = $experimentName; type = "MLExperiment"; folderId = $experimentsFolderId }
+            Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body | Out-Null
+            Write-Host "  Experiment '$experimentName' -- created in experiments/"
+        } catch {
+            Write-Warning "  Experiment creation failed: $_ -- notebooks will handle it"
+        }
+    }
+}
+
+# 3. Lakehouses
 Write-Host "`n[3/8] Creating lakehouses..." -ForegroundColor Yellow
 $lakehouseIds = @{}
 foreach ($entry in @(

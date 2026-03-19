@@ -61,10 +61,14 @@ def log_metrics_to_mlflow(metrics: dict, prefix: str = "") -> None:
 
 
 def ensure_experiment(experiment_name: str) -> None:
-    """Set MLflow experiment and disable autologging to prevent per-fit run spam."""
+    """Attach to existing MLflow experiment by ID (not name) to avoid root-level duplicates."""
     try:
         import mlflow
-        mlflow.set_experiment(experiment_name)
         mlflow.autolog(disable=True)
+        exp = mlflow.get_experiment_by_name(experiment_name)
+        if exp:
+            mlflow.set_experiment(experiment_id=exp.experiment_id)
+        # If not found, skip -- deploy script should have pre-created it in the right folder.
+        # Do NOT call set_experiment(name) as that creates at workspace root.
     except Exception as e:
         print(f"[mlflow] Warning: could not set experiment '{experiment_name}': {e}")
