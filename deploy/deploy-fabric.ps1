@@ -215,7 +215,7 @@ function Deploy-NotebooksParallel {
 
     Write-Host "`n  Waiting for $($operations.Count) $Label operations..." -ForegroundColor Gray
     $pending = [System.Collections.ArrayList]::new($operations)
-    $maxWait = 180
+    $maxWait = 60
     $elapsed = 0
     $interval = 5
 
@@ -247,12 +247,14 @@ function Deploy-NotebooksParallel {
 
         foreach ($d in $done) { $pending.Remove($d) | Out-Null }
         if ($pending.Count -gt 0) {
-            Write-Host "    [$elapsed`s] $($pending.Count) still running..." -ForegroundColor Gray
+            $names = ($pending | ForEach-Object { $_.name }) -join ", "
+            Write-Host "    [$elapsed`s] waiting: $names" -ForegroundColor Gray
         }
     }
 
     if ($pending.Count -gt 0) {
-        Write-Warning "  $($pending.Count) operations still running after ${maxWait}s -- they'll complete in background."
+        $names = ($pending | ForEach-Object { $_.name }) -join ", "
+        Write-Warning "  Timed out waiting for: $names -- will complete in background."
     }
 }
 
@@ -268,29 +270,11 @@ Write-Host "`n[1/8] Creating project folder '$projectFolderName'..." -Foreground
 $projectFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName $projectFolderName
 Write-Host "`n[2/8] Creating sub-folders..." -ForegroundColor Yellow
 $dataFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "data"      -ParentFolderId $projectFolderId
-$notebooksFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "notebooks" -ParentFolderId $projectFolderId
-$pipelinesFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "pipelines" -ParentFolderId $projectFolderId
-$mainFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"      -ParentFolderId $notebooksFolderId
-$modulesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"   -ParentFolderId $notebooksFolderId
-
-# 2a. MLflow Experiment (inside project folder)
-Write-Host "`n  Creating MLflow experiment in project folder..." -ForegroundColor Yellow
-$experimentName = $config.mlflow.experiment_name
-if (-not [string]::IsNullOrWhiteSpace($experimentName)) {
-    $existing = Get-FabricItems -WorkspaceId $workspaceId -Type "MLExperiment" | Where-Object { $_.displayName -eq $experimentName } | Select-Object -First 1
-    if (-not $existing) {
-        try {
-            $body = @{ displayName = $experimentName; type = "MLExperiment" }
-            if ($projectFolderId) { $body.folderId = $projectFolderId }
-            Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body | Out-Null
-            Write-Host "  Experiment '$experimentName' -- created in '$projectFolderName/'"
-        } catch {
-            Write-Warning "  Experiment '$experimentName' -- FAILED: $_"
-        }
-    } else {
-        Write-Host "  Experiment '$experimentName' -- exists: $($existing.id)"
-    }
-}
+$notebooksFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "notebooks"   -ParentFolderId $projectFolderId
+$pipelinesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "pipelines"   -ParentFolderId $projectFolderId
+$experimentsFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "experiments" -ParentFolderId $projectFolderId
+$mainFolderId        = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"        -ParentFolderId $notebooksFolderId
+$modulesFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"     -ParentFolderId $notebooksFolderId
 
 # 2b. Lakehouses
 Write-Host "`n[3/8] Creating lakehouses..." -ForegroundColor Yellow
@@ -394,8 +378,9 @@ Write-Host "  silver:  $silverId"
 Write-Host "  gold:    $goldId"
 Write-Host "`nFolder structure:" -ForegroundColor Cyan
 Write-Host "  $projectFolderName/"
-Write-Host "    data/       (5 lakehouses)"
+Write-Host "    data/         (5 lakehouses)"
+Write-Host "    experiments/  (MLflow experiments)"
 Write-Host "    notebooks/"
-Write-Host "      main/     (17 notebooks)"
-Write-Host "      modules/  (12 notebooks)"
-Write-Host "    pipelines/  (3 data pipelines)"
+Write-Host "      main/       (21 notebooks)"
+Write-Host "      modules/    (14 notebooks)"
+Write-Host "    pipelines/    (3 data pipelines)"
