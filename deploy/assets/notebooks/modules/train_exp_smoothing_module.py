@@ -25,7 +25,6 @@ def train_ets_single(series: pd.Series, trend: str = "add", seasonal: str = "add
         fitted = model.fit(optimized=True)
         preds = fitted.forecast(steps=len(test))
 
-        from utils_module import compute_metrics
         metrics = compute_metrics(test, preds)
         return {"status": "success", "predictions": preds.tolist(),
                 "metrics": metrics, "fitted_model": fitted}
@@ -39,8 +38,6 @@ def train_exp_smoothing_per_grain(df: pd.DataFrame, date_column: str, grain_colu
                                   test_ratio: float = 0.2, experiment_name: str = "",
                                   model_name: str = "", min_series_length: int = 24) -> tuple:
     """Fit Exponential Smoothing per grain."""
-    from utils_module import ensure_experiment, log_metrics_to_mlflow
-
     if experiment_name:
         ensure_experiment(experiment_name)
 

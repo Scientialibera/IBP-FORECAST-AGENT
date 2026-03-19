@@ -42,7 +42,6 @@ def train_prophet_single(series_df: pd.DataFrame, yearly_seasonality: bool = Tru
         forecast = model.predict(future)
         preds = forecast["yhat"].values
 
-        from utils_module import compute_metrics
         metrics = compute_metrics(test["y"].values, preds)
         return {"status": "success", "predictions": preds.tolist(),
                 "metrics": metrics, "fitted_model": model}
@@ -56,8 +55,6 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
                             test_ratio: float = 0.2, experiment_name: str = "",
                             model_name: str = "", min_series_length: int = 24) -> tuple:
     """Fit Prophet per grain combination."""
-    from utils_module import ensure_experiment, log_metrics_to_mlflow
-
     if experiment_name:
         ensure_experiment(experiment_name)
 

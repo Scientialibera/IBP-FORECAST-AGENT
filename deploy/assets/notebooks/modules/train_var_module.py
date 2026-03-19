@@ -32,7 +32,6 @@ def train_var_single(df: pd.DataFrame, target_column: str, feature_columns: list
         forecast = fitted.forecast(forecast_input, steps=len(test))
         preds = forecast[:, 0]
 
-        from utils_module import compute_metrics
         metrics = compute_metrics(test[target_column].values, preds)
         return {"status": "success", "predictions": preds.tolist(),
                 "metrics": metrics, "lag_order": fitted.k_ar}
@@ -46,8 +45,6 @@ def train_var_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
                         experiment_name: str = "", model_name: str = "",
                         min_series_length: int = 24) -> tuple:
     """Fit VAR per grain combination using target + correlated features."""
-    from utils_module import ensure_experiment, log_metrics_to_mlflow
-
     if experiment_name:
         ensure_experiment(experiment_name)
 

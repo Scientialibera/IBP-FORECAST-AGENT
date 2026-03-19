@@ -3,7 +3,6 @@
 
 import pandas as pd
 from datetime import datetime
-from utils_module import generate_version_id, current_snapshot_month
 
 
 def stamp_forecast_version(df: pd.DataFrame, version_type: str = "system",
@@ -34,7 +33,6 @@ def stamp_forecast_version(df: pd.DataFrame, version_type: str = "system",
 def append_versioned_forecast(spark, gold_lakehouse_id: str, table_name: str,
                               forecast_df: pd.DataFrame) -> None:
     """Append (not overwrite) a versioned forecast to the gold table."""
-    from config_module import write_lakehouse_table
     sdf = spark.createDataFrame(forecast_df)
     write_lakehouse_table(sdf, gold_lakehouse_id, table_name, mode="append")
 
@@ -42,8 +40,6 @@ def append_versioned_forecast(spark, gold_lakehouse_id: str, table_name: str,
 def get_latest_system_version(spark, gold_lakehouse_id: str, table_name: str,
                               snapshot_month: str = "") -> pd.DataFrame:
     """Read the most recent system forecast version."""
-    from config_module import read_lakehouse_table
-
     df = read_lakehouse_table(spark, gold_lakehouse_id, table_name)
     filtered = df.filter(df.version_type == "system")
     if snapshot_month:
@@ -62,8 +58,6 @@ def get_latest_system_version(spark, gold_lakehouse_id: str, table_name: str,
 def purge_old_snapshots(spark, gold_lakehouse_id: str, table_name: str,
                         keep_n: int = 24) -> None:
     """Remove snapshots older than keep_n months. Preserves data governance."""
-    from config_module import read_lakehouse_table, write_lakehouse_table
-
     df = read_lakehouse_table(spark, gold_lakehouse_id, table_name).toPandas()
     if df.empty:
         return

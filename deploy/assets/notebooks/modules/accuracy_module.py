@@ -4,7 +4,6 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from utils_module import compute_metrics
 
 
 def evaluate_forecast_accuracy(forecast_df: pd.DataFrame,

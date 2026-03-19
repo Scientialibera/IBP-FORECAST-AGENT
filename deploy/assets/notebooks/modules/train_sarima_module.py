@@ -25,7 +25,6 @@ def train_sarima_single(series: pd.Series, order: tuple, seasonal_order: tuple,
         fitted = model.fit(disp=False, maxiter=200)
         preds = fitted.forecast(steps=len(test))
 
-        from utils_module import compute_metrics
         metrics = compute_metrics(test, preds)
         return {"status": "success", "predictions": preds.tolist(),
                 "metrics": metrics, "fitted_model": fitted}
@@ -38,8 +37,6 @@ def train_sarima_per_grain(df: pd.DataFrame, date_column: str, grain_columns: li
                            test_ratio: float = 0.2, experiment_name: str = "",
                            model_name: str = "", min_series_length: int = 24) -> tuple:
     """Fit SARIMA per grain combination."""
-    from utils_module import ensure_experiment, log_metrics_to_mlflow, compute_metrics
-
     if experiment_name:
         ensure_experiment(experiment_name)
 
