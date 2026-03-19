@@ -3,8 +3,9 @@
     Idempotent deployment of IBP Forecast lakehouses, folders, and notebooks
     to a Microsoft Fabric workspace.
 .DESCRIPTION
-    Reads deploy.config.toml, creates lakehouses if not present, then deploys
-    all module and main notebooks. Matches the FABRIC-ANALYTICS pattern.
+    Reads deploy.config.toml, creates a top-level project folder, nests
+    lakehouses and notebook folders inside it, then deploys all notebooks.
+    Existing items are reused or updated -- safe to re-run.
 #>
 param(
     [string]$ConfigPath = "$PSScriptRoot/deploy.config.toml"
@@ -22,11 +23,8 @@ function Get-Config {
 }
 
 $config = Get-Config -Path $ConfigPath
-$workspaceId = $config.fabric.workspace_id
-if ([string]::IsNullOrWhiteSpace($workspaceId)) { throw "fabric.workspace_id is required in config." }
 
 Write-Host "`n=== IBP Forecast -- Fabric Deployment ===" -ForegroundColor Cyan
-Write-Host "Workspace: $workspaceId"
 
 # ── Fabric API helpers ──────────────────────────────────────────
 function Get-FabricToken {
@@ -57,6 +55,43 @@ function Get-FabricItems {
     return $items
 }
 
+# ── Resolve workspace ID (by name if no ID provided) ───────────
+$workspaceId = $config.fabric.workspace_id
+if ([string]::IsNullOrWhiteSpace($workspaceId)) {
+    $wsName = $config.fabric.workspace_name
+    if ([string]::IsNullOrWhiteSpace($wsName)) {
+        throw "Either fabric.workspace_id or fabric.workspace_name must be set in config."
+    }
+    Write-Host "Looking up workspace '$wsName'..."
+    $allWs = Invoke-FabricApi -Method "GET" -Uri "https://api.fabric.microsoft.com/v1/workspaces"
+    $match = $allWs.value | Where-Object { $_.displayName -eq $wsName } | Select-Object -First 1
+    if (-not $match) { throw "Workspace '$wsName' not found." }
+    $workspaceId = $match.id
+    Write-Host "  Resolved: $workspaceId"
+}
+Write-Host "Workspace: $workspaceId"
+
+# ── Folder helpers ──────────────────────────────────────────────
+function Ensure-FabricFolder {
+    param([string]$WorkspaceId, [string]$FolderName, [string]$ParentFolderId)
+    $folders = Invoke-FabricApi -Method "GET" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/folders"
+    $match = $folders.value | Where-Object {
+        $_.displayName -eq $FolderName -and
+        ((-not $ParentFolderId -and -not $_.parentFolderId) -or ($_.parentFolderId -eq $ParentFolderId))
+    } | Select-Object -First 1
+
+    if ($match) {
+        Write-Host "  Folder '$FolderName' -- exists: $($match.id)"
+        return $match.id
+    }
+
+    $body = @{ displayName = $FolderName }
+    if ($ParentFolderId) { $body.parentFolderId = $ParentFolderId }
+    $created = Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/folders" -Body $body
+    Write-Host "  Folder '$FolderName' -- created: $($created.id)"
+    return $created.id
+}
+
 # ── Lakehouse helpers ───────────────────────────────────────────
 function Ensure-FabricLakehouse {
     param([string]$WorkspaceId, [string]$LakehouseId, [string]$LakehouseName, [string]$FolderId)
@@ -73,24 +108,6 @@ function Ensure-FabricLakehouse {
     if (-not [string]::IsNullOrWhiteSpace($FolderId)) { $body.folderId = $FolderId }
     $created = Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/items" -Body $body
     Write-Host "  Lakehouse '$LakehouseName' -- created: $($created.id)"
-    return $created.id
-}
-
-# ── Folder helpers ──────────────────────────────────────────────
-function Ensure-FabricFolder {
-    param([string]$WorkspaceId, [string]$FolderName, [string]$ParentFolderId)
-    $folders = Invoke-FabricApi -Method "GET" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/folders"
-    $match = $folders.value | Where-Object {
-        $_.displayName -eq $FolderName -and
-        ((-not $ParentFolderId -and -not $_.parentFolderId) -or ($_.parentFolderId -eq $ParentFolderId))
-    } | Select-Object -First 1
-
-    if ($match) { return $match.id }
-
-    $body = @{ displayName = $FolderName }
-    if ($ParentFolderId) { $body.parentFolderId = $ParentFolderId }
-    $created = Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$WorkspaceId/folders" -Body $body
-    Write-Host "  Folder '$FolderName' -- created"
     return $created.id
 }
 
@@ -121,29 +138,38 @@ function Ensure-FabricNotebook {
 # MAIN FLOW
 # ─────────────────────────────────────────────────────────────────
 
-# 1. Folders
-Write-Host "`n[1/4] Creating folders..." -ForegroundColor Yellow
-$rootFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "ibp_forecast"
-$mainFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"    -ParentFolderId $rootFolderId
-$modulesFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules" -ParentFolderId $rootFolderId
+$projectFolderName = $config.naming.project_folder
+if ([string]::IsNullOrWhiteSpace($projectFolderName)) { $projectFolderName = "IBP Forecast" }
 
-# 2. Lakehouses
-Write-Host "`n[2/4] Creating lakehouses..." -ForegroundColor Yellow
-$landingId = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.landing_id -LakehouseName $config.lakehouses.landing_name
-$bronzeId  = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.bronze_id  -LakehouseName $config.lakehouses.bronze_name
-$silverId  = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.silver_id  -LakehouseName $config.lakehouses.silver_name
-$goldId    = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.gold_id    -LakehouseName $config.lakehouses.gold_name
+# 1. Top-level project folder (everything nests under this)
+Write-Host "`n[1/5] Creating project folder '$projectFolderName'..." -ForegroundColor Yellow
+$projectFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName $projectFolderName
 
-# 3. Module notebooks
-Write-Host "`n[3/4] Deploying module notebooks..." -ForegroundColor Yellow
+# 2. Sub-folders under the project folder
+Write-Host "`n[2/5] Creating sub-folders..." -ForegroundColor Yellow
+$dataFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "data"      -ParentFolderId $projectFolderId
+$notebooksFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "notebooks" -ParentFolderId $projectFolderId
+$mainFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"      -ParentFolderId $notebooksFolderId
+$modulesFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"   -ParentFolderId $notebooksFolderId
+
+# 3. Lakehouses (under data/ folder)
+Write-Host "`n[3/5] Creating lakehouses under '$projectFolderName/data/'..." -ForegroundColor Yellow
+$sourceId  = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.source.source_lakehouse_id  -LakehouseName $config.source.source_lakehouse_name -FolderId $dataFolderId
+$landingId = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.landing_id -LakehouseName $config.lakehouses.landing_name -FolderId $dataFolderId
+$bronzeId  = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.bronze_id  -LakehouseName $config.lakehouses.bronze_name  -FolderId $dataFolderId
+$silverId  = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.silver_id  -LakehouseName $config.lakehouses.silver_name  -FolderId $dataFolderId
+$goldId    = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $config.lakehouses.gold_id    -LakehouseName $config.lakehouses.gold_name    -FolderId $dataFolderId
+
+# 4. Module notebooks (under notebooks/modules/)
+Write-Host "`n[4/5] Deploying module notebooks..." -ForegroundColor Yellow
 $modulesDir = Join-Path $PSScriptRoot "assets" "notebooks" "modules"
 foreach ($file in (Get-ChildItem $modulesDir -Filter "*.py" | Sort-Object Name)) {
     $name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
     Ensure-FabricNotebook -WorkspaceId $workspaceId -DisplayName $name -FolderId $modulesFolderId -SourceFilePath $file.FullName | Out-Null
 }
 
-# 4. Main notebooks
-Write-Host "`n[4/4] Deploying main notebooks..." -ForegroundColor Yellow
+# 5. Main notebooks (under notebooks/main/)
+Write-Host "`n[5/5] Deploying main notebooks..." -ForegroundColor Yellow
 $mainDir = Join-Path $PSScriptRoot "assets" "notebooks" "main"
 foreach ($file in (Get-ChildItem $mainDir -Filter "*.py" | Sort-Object Name)) {
     $name = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
@@ -152,11 +178,27 @@ foreach ($file in (Get-ChildItem $mainDir -Filter "*.py" | Sort-Object Name)) {
 
 # ── Output summary ──────────────────────────────────────────────
 Write-Host "`n=== Deployment Complete ===" -ForegroundColor Green
+Write-Host "Everything deployed under: $projectFolderName/" -ForegroundColor Green
+
 $output = @{
-    workspace_id = $workspaceId
-    landing_id   = $landingId
-    bronze_id    = $bronzeId
-    silver_id    = $silverId
-    gold_id      = $goldId
+    workspace_id     = $workspaceId
+    project_folder   = $projectFolderName
+    source_id        = $sourceId
+    landing_id       = $landingId
+    bronze_id        = $bronzeId
+    silver_id        = $silverId
+    gold_id          = $goldId
 }
 $output | ConvertTo-Json | Write-Host
+
+Write-Host "`nFolder structure in Fabric:" -ForegroundColor Cyan
+Write-Host "  $projectFolderName/"
+Write-Host "    data/"
+Write-Host "      lh_ibp_source     ($sourceId)"
+Write-Host "      lh_ibp_landing    ($landingId)"
+Write-Host "      lh_ibp_bronze     ($bronzeId)"
+Write-Host "      lh_ibp_silver     ($silverId)"
+Write-Host "      lh_ibp_gold       ($goldId)"
+Write-Host "    notebooks/"
+Write-Host "      main/             (17 notebooks)"
+Write-Host "      modules/          (12 notebooks)"

@@ -32,7 +32,42 @@ flowchart LR
 | **Market Adjustment** | `market_adjusted` | Market planner | ±X% multiplicative scaling per market |
 | **Consensus** | `consensus` | Pipeline | `(system + sales_delta) * market_factor` |
 
+## Fabric Workspace Structure
+
+When deployed, everything nests under a single project folder in the Fabric workspace:
+
+```
+IBP Forecast/
+  data/
+    lh_ibp_source          ← source data (or test data)
+    lh_ibp_landing
+    lh_ibp_bronze
+    lh_ibp_silver
+    lh_ibp_gold
+  notebooks/
+    main/
+      00_generate_test_data  ← synthetic data for E2E testing
+      01_ingest_sources
+      ...
+      13_budget_comparison
+      P2_01_external_signals
+      ...
+      P2_04_inventory_alignment
+    modules/
+      config_module
+      utils_module
+      ...
+```
+
 ## Notebook Execution Order
+
+### Step 0 -- Test Data (Optional)
+
+| # | Notebook | Description |
+|---|----------|-------------|
+| 00 | `00_generate_test_data` | Generate 42 months of realistic synthetic data for all 12 source tables |
+
+Run this first if you don't have real source data. It writes to `lh_ibp_source` and populates orders, shipments, production history, master data, budgets, inventory, overrides, market adjustments, external signals, and scenario definitions.
 
 ### Phase 1 -- Core Capabilities
 
@@ -110,11 +145,11 @@ flowchart LR
 pwsh ./deploy/deploy-fabric.ps1
 ```
 
-Creates lakehouses (Landing, Bronze, Silver, Gold) and deploys all notebooks to the Fabric workspace. Idempotent -- safe to re-run.
+Creates a top-level project folder, nests lakehouses (Source, Landing, Bronze, Silver, Gold) under `data/`, and deploys all notebooks under `notebooks/`. Resolves workspace by name (`Aura Bot`) or by ID. Idempotent -- safe to re-run.
 
 ### Configuration
 
-All settings in `deploy/deploy.config.toml`. Set `fabric.workspace_id` before deploying.
+All settings in `deploy/deploy.config.toml`. Set either `fabric.workspace_id` or `fabric.workspace_name` before deploying.
 
 ## Knowledge Transfer
 

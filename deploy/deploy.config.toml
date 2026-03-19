@@ -4,10 +4,12 @@
 # ──────────────────────────────────────────────────────────────────
 
 [fabric]
-workspace_id = ""
+workspace_id   = ""
+workspace_name = "Aura Bot"
 
 [naming]
-prefix = "ibp_forecast"
+prefix       = "ibp_forecast"
+project_folder = "IBP Forecast"
 
 # ── Lakehouses ───────────────────────────────────────────────────
 # Leave IDs empty to auto-create; set to skip creation.
@@ -26,7 +28,7 @@ gold_id       = ""
 
 [source]
 source_lakehouse_id   = ""
-source_lakehouse_name = ""
+source_lakehouse_name = "lh_ibp_source"
 tables = [
     "orders",
     "shipments",
@@ -154,3 +156,14 @@ xyz_cv_threshold_x    = 0.5
 xyz_cv_threshold_y    = 1.0
 runner_threshold      = 0.8
 repeater_threshold    = 0.95
+
+# ── Test Data Generation ─────────────────────────────────────────
+
+[test_data]
+n_skus              = 50
+n_plants            = 5
+n_customers         = 20
+n_markets           = 4
+n_production_lines  = 10
+history_months      = 42
+seed                = 42
