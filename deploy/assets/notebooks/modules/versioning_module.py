@@ -1,31 +1,5 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # versioning_module.py -- Forecast version management, snapshot creation
-
-# CELL ********************
 
 import pandas as pd
 from datetime import datetime
@@ -103,17 +77,3 @@ def purge_old_snapshots(spark, gold_lakehouse_id: str, table_name: str,
     sdf = spark.createDataFrame(filtered)
     write_lakehouse_table(sdf, gold_lakehouse_id, table_name, mode="overwrite")
     print(f"[versioning] Purged {len(unique_months) - keep_n} old snapshots, kept {keep_n}")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

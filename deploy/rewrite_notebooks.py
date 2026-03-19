@@ -1,0 +1,903 @@
+"""
+Rewrite all main notebooks with enterprise-grade parameter handling.
+
+- Parameter cell: ONLY lakehouse IDs (with __PLACEHOLDER__ for converter to inject)
+- All other config: from centralized ibp_config via cfg()
+- No hardcoded defaults scattered across notebooks
+"""
+
+import pathlib
+
+MAIN_DIR = pathlib.Path(__file__).parent / "assets" / "notebooks" / "main"
+
+# Each notebook definition: (filename, params, runs, code)
+# params = list of lakehouse param names for the parameter cell
+# runs = list of module names to %run
+# code = the notebook body
+
+NOTEBOOKS = {}
+
+
+def nb(name, lakehouse_params, runs, code):
+    NOTEBOOKS[name] = {
+        "params": lakehouse_params,
+        "runs": runs,
+        "code": code,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────
+# 00 - Generate Test Data
+# ─────────────────────────────────────────────────────────────────
+nb("00_generate_test_data",
+   ["source_lakehouse_id"],
+   ["ibp_config", "config_module"],
+   r'''
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+
+N_SKUS = cfg("n_skus")
+N_PLANTS = cfg("n_plants")
+N_CUSTOMERS = cfg("n_customers")
+N_MARKETS = cfg("n_markets")
+N_LINES = cfg("n_production_lines")
+HISTORY_MONTHS = cfg("history_months")
+SEED = cfg("seed")
+
+np.random.seed(SEED)
+print(f"[test_data] Generating {HISTORY_MONTHS} months of history for "
+      f"{N_SKUS} SKUs, {N_PLANTS} plants, {N_CUSTOMERS} customers, {N_MARKETS} markets")
+
+end_date = pd.Timestamp(datetime.utcnow().replace(day=1))
+dates = pd.date_range(end=end_date, periods=HISTORY_MONTHS, freq="MS")
+
+markets = [f"MKT-{chr(65+i)}" for i in range(N_MARKETS)]
+market_names = ["Residential", "Commercial", "Industrial", "Specialty"][:N_MARKETS]
+market_segments = ["NCCA", "NCCA", "imports", "NCCA"][:N_MARKETS]
+
+plants = [f"PLT-{i+1:02d}" for i in range(N_PLANTS)]
+plant_names = [f"Plant {chr(65+i)}" for i in range(N_PLANTS)]
+plant_regions = ["East", "West", "Central", "South", "North"][:N_PLANTS]
+
+sku_groups = ["Coated Steel", "Galvanized", "Aluminum", "Prepainted", "Specialty Alloy"]
+skus = []
+for i in range(N_SKUS):
+    skus.append({
+        "sku_id": f"SKU-{i+1:04d}", "sku_name": f"Product {i+1}",
+        "sku_group": sku_groups[i % len(sku_groups)],
+        "base_width_inches": round(np.random.uniform(12, 72), 1),
+        "base_weight_lbs": round(np.random.uniform(50, 500), 0),
+        "unit_of_measure": "tons",
+    })
+
+customers = []
+for i in range(N_CUSTOMERS):
+    customers.append({
+        "customer_id": f"CUST-{i+1:03d}", "customer_name": f"Customer {i+1}",
+        "market_id": markets[i % N_MARKETS], "region": plant_regions[i % N_PLANTS],
+        "tier": np.random.choice(["A", "B", "C"], p=[0.2, 0.5, 0.3]),
+    })
+
+lines_data = []
+for i in range(N_LINES):
+    lines_data.append({
+        "line_id": f"LINE-{i+1:02d}", "plant_id": plants[i % N_PLANTS],
+        "line_name": f"Line {i+1}",
+        "max_speed_fpm": round(np.random.uniform(100, 500), 0),
+        "max_width_inches": round(np.random.uniform(48, 72), 0),
+    })
+
+print("[test_data] Writing master tables...")
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(skus)), source_lakehouse_id, "master_sku", mode="overwrite")
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame([
+    {"plant_id": p, "plant_name": n, "region": r, "capacity_tons_month": round(np.random.uniform(5000, 20000), 0)}
+    for p, n, r in zip(plants, plant_names, plant_regions)
+])), source_lakehouse_id, "master_plant", mode="overwrite")
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(customers)), source_lakehouse_id, "master_customer", mode="overwrite")
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame([
+    {"market_id": m, "market_name": n, "segment": s} for m, n, s in zip(markets, market_names, market_segments)
+])), source_lakehouse_id, "master_market", mode="overwrite")
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(lines_data)), source_lakehouse_id, "production_lines", mode="overwrite")
+
+orders_rows = []
+for sku in skus:
+    base_tons = np.random.uniform(10, 200)
+    trend = np.random.uniform(-0.5, 1.5)
+    seasonality_amp = np.random.uniform(0.1, 0.4) * base_tons
+    phase = np.random.uniform(0, 2 * np.pi)
+    assigned_plant = plants[hash(sku["sku_id"]) % N_PLANTS]
+    assigned_customers = [customers[j] for j in range(N_CUSTOMERS) if j % N_SKUS == (int(sku["sku_id"].split("-")[1]) - 1) % N_CUSTOMERS]
+    if not assigned_customers:
+        assigned_customers = [customers[hash(sku["sku_id"]) % N_CUSTOMERS]]
+    for t, date in enumerate(dates):
+        seasonal = seasonality_amp * np.sin(2 * np.pi * (date.month - 1) / 12 + phase)
+        tons = max(1, base_tons + trend * t + seasonal + np.random.normal(0, base_tons * 0.1))
+        cust = assigned_customers[t % len(assigned_customers)]
+        orders_rows.append({
+            "period_date": str(date.date()), "plant_id": assigned_plant,
+            "sku_id": sku["sku_id"], "sku_group": sku["sku_group"],
+            "customer_id": cust["customer_id"], "market_id": cust["market_id"],
+            "tons": round(tons, 2),
+            "price_per_ton": round(np.random.uniform(500, 2000), 2),
+            "lead_time_days": int(np.random.uniform(3, 30)),
+            "promo_flag": int(np.random.random() < 0.15),
+            "safety_stock_tons": round(base_tons * 0.1, 2),
+        })
+orders_spark = spark.createDataFrame(pd.DataFrame(orders_rows))
+write_lakehouse_table(orders_spark, source_lakehouse_id, "orders", mode="overwrite")
+print(f"  orders: {len(orders_rows)} rows")
+
+shipments_rows = [dict(r, shipped_tons=round(r["tons"] * np.random.uniform(0.85, 1.0), 2),
+                       ship_date=r["period_date"]) for r in orders_rows if np.random.random() < 0.9]
+shipments_spark = spark.createDataFrame(pd.DataFrame(shipments_rows))
+write_lakehouse_table(shipments_spark, source_lakehouse_id, "shipments", mode="overwrite")
+print(f"  shipments: {len(shipments_rows)} rows")
+
+prod_rows = []
+for line in lines_data:
+    for date in dates:
+        prod_rows.append({
+            "period_date": str(date.date()), "line_id": line["line_id"],
+            "plant_id": line["plant_id"],
+            "produced_tons": round(np.random.uniform(500, 3000), 2),
+            "line_speed_fpm": round(line["max_speed_fpm"] * np.random.uniform(0.7, 1.0), 1),
+            "width_inches": round(line["max_width_inches"] * np.random.uniform(0.8, 1.0), 1),
+            "downtime_hours": round(np.random.exponential(5), 1),
+        })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(prod_rows)), source_lakehouse_id, "production_history", mode="overwrite")
+print(f"  production_history: {len(prod_rows)} rows")
+
+budget_rows = []
+for sku in skus:
+    assigned_plant = plants[hash(sku["sku_id"]) % N_PLANTS]
+    for date in dates[-12:]:
+        budget_rows.append({
+            "period_date": str(date.date()), "plant_id": assigned_plant,
+            "sku_id": sku["sku_id"], "sku_group": sku["sku_group"],
+            "budget_tons": round(np.random.uniform(10, 200) * (1 + np.random.normal(0, 0.1)), 2),
+            "budget_revenue": round(np.random.uniform(5000, 200000), 2),
+        })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(budget_rows)), source_lakehouse_id, "budget_volumes", mode="overwrite")
+print(f"  budget_volumes: {len(budget_rows)} rows")
+
+inv_rows = []
+for sku in skus:
+    assigned_plant = plants[hash(sku["sku_id"]) % N_PLANTS]
+    for date in dates[-6:]:
+        inv_rows.append({
+            "period_date": str(date.date()), "plant_id": assigned_plant,
+            "sku_id": sku["sku_id"],
+            "on_hand_tons": round(np.random.uniform(5, 300), 2),
+            "in_transit_tons": round(np.random.uniform(0, 50), 2),
+            "safety_stock_tons": round(np.random.uniform(5, 50), 2),
+        })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(inv_rows)), source_lakehouse_id, "inventory_finished_goods", mode="overwrite")
+print(f"  inventory_finished_goods: {len(inv_rows)} rows")
+
+override_rows = []
+for sku in skus[:10]:
+    for date in dates[-3:]:
+        override_rows.append({
+            "period_date": str(date.date()), "plant_id": plants[0],
+            "sku_id": sku["sku_id"], "override_tons": round(np.random.uniform(50, 300), 2),
+            "override_reason": np.random.choice(["promo", "contract", "seasonal"]),
+            "submitted_by": "sales_team",
+        })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(override_rows)), source_lakehouse_id, "sales_overrides", mode="overwrite")
+print(f"  sales_overrides: {len(override_rows)} rows")
+
+adj_rows = []
+for mkt in markets:
+    for date in dates[-6:]:
+        adj_rows.append({
+            "period_date": str(date.date()), "market_id": mkt,
+            "scale_factor": round(np.random.uniform(0.8, 1.2), 3),
+            "adjustment_reason": np.random.choice(["tariff", "demand_shift", "competition"]),
+        })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(adj_rows)), source_lakehouse_id, "market_adjustments", mode="overwrite")
+print(f"  market_adjustments: {len(adj_rows)} rows")
+
+signal_rows = []
+for date in dates:
+    signal_rows.append({
+        "period_date": str(date.date()),
+        "construction_index": round(100 + np.random.normal(0, 10), 2),
+        "interest_rate": round(np.random.uniform(3, 7), 2),
+        "inflation_rate": round(np.random.uniform(1, 5), 2),
+        "tariff_rate": round(np.random.uniform(0, 15), 2),
+    })
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(signal_rows)), source_lakehouse_id, "external_signals", mode="overwrite")
+print(f"  external_signals: {len(signal_rows)} rows")
+
+scenario_rows = [
+    {"scenario_id": "base", "scenario_name": "Base Case", "volume_multiplier": 1.0, "price_multiplier": 1.0},
+    {"scenario_id": "bull", "scenario_name": "Bull Case", "volume_multiplier": 1.15, "price_multiplier": 1.05},
+    {"scenario_id": "bear", "scenario_name": "Bear Case", "volume_multiplier": 0.85, "price_multiplier": 0.95},
+    {"scenario_id": "tariff", "scenario_name": "Tariff Impact", "volume_multiplier": 0.90, "price_multiplier": 1.10},
+]
+write_lakehouse_table(spark.createDataFrame(pd.DataFrame(scenario_rows)), source_lakehouse_id, "scenario_definitions", mode="overwrite")
+print(f"  scenario_definitions: {len(scenario_rows)} rows")
+
+print(f"\n{'='*60}")
+print(f"[test_data] COMPLETE - All tables written to source lakehouse")
+print(f"  SKUs: {N_SKUS}, Plants: {N_PLANTS}")
+print(f"  Customers: {N_CUSTOMERS}, Markets: {N_MARKETS}")
+print(f"  Source lakehouse: {source_lakehouse_id}")
+print(f"{'='*60}")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 01 - Ingest Sources
+# ─────────────────────────────────────────────────────────────────
+nb("01_ingest_sources",
+   ["source_lakehouse_id", "landing_lakehouse_id"],
+   ["ibp_config", "config_module"],
+   '''
+source_tables = cfg("source_tables")
+
+print(f"[ingest] Source: {source_lakehouse_id} → Landing: {landing_lakehouse_id}")
+print(f"[ingest] Tables: {source_tables}")
+
+for table_name in source_tables:
+    print(f"  Reading: {table_name}")
+    df = read_lakehouse_table(spark, source_lakehouse_id, table_name)
+    row_count = df.count()
+    print(f"  {table_name}: {row_count} rows")
+    write_lakehouse_table(df, landing_lakehouse_id, table_name, mode="overwrite")
+
+print("[ingest] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 02 - Transform Bronze
+# ─────────────────────────────────────────────────────────────────
+nb("02_transform_bronze",
+   ["landing_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module"],
+   '''
+source_tables = cfg("source_tables")
+
+print(f"[bronze] Landing → Bronze")
+for table_name in source_tables:
+    print(f"  Processing: {table_name}")
+    df = read_lakehouse_table(spark, landing_lakehouse_id, table_name)
+    df_clean = df.dropDuplicates().dropna(how="all")
+    row_count = df_clean.count()
+    write_lakehouse_table(df_clean, bronze_lakehouse_id, table_name, mode="overwrite")
+    print(f"  {table_name}: {row_count} rows written to bronze")
+
+print("[bronze] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 03 - Feature Engineering
+# ─────────────────────────────────────────────────────────────────
+nb("03_feature_engineering",
+   ["bronze_lakehouse_id", "silver_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "feature_engineering_module"],
+   '''
+date_column = cfg("date_column")
+frequency = cfg("frequency")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+feature_columns = cfg("feature_columns")
+source_tables = cfg("source_tables")
+
+print(f"[features] Bronze → Silver feature table")
+orders_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders")
+pdf = orders_df.toPandas()
+print(f"[features] Loaded {len(pdf)} order rows")
+
+feature_df = build_feature_table(
+    pdf, date_column=date_column, grain_columns=grain_columns,
+    target_column=target_column, feature_columns=feature_columns, frequency=frequency,
+)
+print(f"[features] Feature table: {len(feature_df)} rows")
+
+feature_spark = spark.createDataFrame(feature_df)
+write_lakehouse_table(feature_spark, silver_lakehouse_id, "feature_table", mode="overwrite")
+print("[features] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 04 - Train SARIMA
+# ─────────────────────────────────────────────────────────────────
+nb("04_train_sarima",
+   ["silver_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "train_sarima_module"],
+   '''
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+test_split_ratio = cfg("test_split_ratio")
+sarima_order = tuple(cfg("sarima_order"))
+sarima_seasonal_order = tuple(cfg("sarima_seasonal_order"))
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
+
+print("[sarima] Loading feature table.")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
+print(f"[sarima] Loaded {len(pdf)} rows.")
+
+results_df, agg_metrics = train_sarima_per_grain(
+    df=pdf, date_column=date_column, grain_columns=grain_columns,
+    target_column=target_column, order=sarima_order,
+    seasonal_order=sarima_seasonal_order, test_ratio=test_split_ratio,
+    experiment_name=experiment_name, model_name=f"{model_prefix}_sarima",
+    min_series_length=min_series_length,
+)
+
+if not results_df.empty:
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "sarima_predictions", mode="overwrite")
+print("[sarima] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 04 - Train Prophet
+# ─────────────────────────────────────────────────────────────────
+nb("04_train_prophet",
+   ["silver_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "train_prophet_module"],
+   '''
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+test_split_ratio = cfg("test_split_ratio")
+yearly = cfg("prophet_yearly_seasonality")
+weekly = cfg("prophet_weekly_seasonality")
+changepoint_prior = cfg("prophet_changepoint_prior")
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
+
+print("[prophet] Loading feature table.")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
+print(f"[prophet] Loaded {len(pdf)} rows.")
+
+results_df, agg_metrics = train_prophet_per_grain(
+    df=pdf, date_column=date_column, grain_columns=grain_columns,
+    target_column=target_column, yearly_seasonality=yearly,
+    weekly_seasonality=weekly, changepoint_prior=changepoint_prior,
+    test_ratio=test_split_ratio, experiment_name=experiment_name,
+    model_name=f"{model_prefix}_prophet", min_series_length=min_series_length,
+)
+
+if not results_df.empty:
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "prophet_predictions", mode="overwrite")
+print("[prophet] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 04 - Train VAR
+# ─────────────────────────────────────────────────────────────────
+nb("04_train_var",
+   ["silver_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "train_var_module"],
+   '''
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+feature_columns = cfg("feature_columns")
+test_split_ratio = cfg("test_split_ratio")
+maxlags = cfg("var_maxlags")
+ic = cfg("var_ic")
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
+
+print("[var] Loading feature table.")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
+print(f"[var] Loaded {len(pdf)} rows.")
+
+results_df, agg_metrics = train_var_per_grain(
+    df=pdf, date_column=date_column, grain_columns=grain_columns,
+    target_column=target_column, feature_columns=feature_columns,
+    maxlags=maxlags, ic=ic, test_ratio=test_split_ratio,
+    experiment_name=experiment_name, model_name=f"{model_prefix}_var",
+    min_series_length=min_series_length,
+)
+
+if not results_df.empty:
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "var_predictions", mode="overwrite")
+print("[var] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 04 - Train Exp Smoothing
+# ─────────────────────────────────────────────────────────────────
+nb("04_train_exp_smoothing",
+   ["silver_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "train_exp_smoothing_module"],
+   '''
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+test_split_ratio = cfg("test_split_ratio")
+trend = cfg("exp_smoothing_trend")
+seasonal = cfg("exp_smoothing_seasonal")
+seasonal_periods = cfg("exp_smoothing_seasonal_periods")
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
+
+print("[ets] Loading feature table.")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
+print(f"[ets] Loaded {len(pdf)} rows.")
+
+results_df, agg_metrics = train_exp_smoothing_per_grain(
+    df=pdf, date_column=date_column, grain_columns=grain_columns,
+    target_column=target_column, trend=trend, seasonal=seasonal,
+    seasonal_periods=seasonal_periods, test_ratio=test_split_ratio,
+    experiment_name=experiment_name, model_name=f"{model_prefix}_ets",
+    min_series_length=min_series_length,
+)
+
+if not results_df.empty:
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "ets_predictions", mode="overwrite")
+print("[ets] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 05 - Score Forecast
+# ─────────────────────────────────────────────────────────────────
+nb("05_score_forecast",
+   ["silver_lakehouse_id", "gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "scoring_module"],
+   '''
+import pandas as pd
+
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+feature_columns = cfg("feature_columns")
+forecast_horizon = cfg("forecast_horizon")
+
+print("[score] Loading feature table from silver.")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
+print(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
+
+all_forecasts = []
+
+print("[score] Forecasting with SARIMA...")
+try:
+    sarima_fc = forecast_sarima_forward(pdf, date_column, grain_columns, target_column,
+                                        forecast_horizon, tuple(cfg("sarima_order")), tuple(cfg("sarima_seasonal_order")))
+    if not sarima_fc.empty:
+        all_forecasts.append(sarima_fc)
+        print(f"  SARIMA: {len(sarima_fc)} rows")
+except Exception as e:
+    print(f"  SARIMA failed: {e}")
+
+print("[score] Forecasting with Prophet...")
+try:
+    prophet_fc = forecast_prophet_forward(pdf, date_column, grain_columns, target_column,
+                                          forecast_horizon, cfg("prophet_yearly_seasonality"),
+                                          cfg("prophet_weekly_seasonality"), cfg("prophet_changepoint_prior"))
+    if not prophet_fc.empty:
+        all_forecasts.append(prophet_fc)
+        print(f"  Prophet: {len(prophet_fc)} rows")
+except Exception as e:
+    print(f"  Prophet failed: {e}")
+
+print("[score] Forecasting with VAR...")
+try:
+    var_fc = forecast_var_forward(pdf, date_column, grain_columns, target_column,
+                                  feature_columns, forecast_horizon, cfg("var_maxlags"), cfg("var_ic"))
+    if not var_fc.empty:
+        all_forecasts.append(var_fc)
+        print(f"  VAR: {len(var_fc)} rows")
+except Exception as e:
+    print(f"  VAR failed: {e}")
+
+print("[score] Forecasting with Exp Smoothing...")
+try:
+    ets_fc = forecast_ets_forward(pdf, date_column, grain_columns, target_column,
+                                   forecast_horizon, cfg("exp_smoothing_trend"),
+                                   cfg("exp_smoothing_seasonal"), cfg("exp_smoothing_seasonal_periods"))
+    if not ets_fc.empty:
+        all_forecasts.append(ets_fc)
+        print(f"  Exp Smoothing: {len(ets_fc)} rows")
+except Exception as e:
+    print(f"  Exp Smoothing failed: {e}")
+
+if all_forecasts:
+    combined = pd.concat(all_forecasts, ignore_index=True)
+    write_lakehouse_table(spark.createDataFrame(combined), silver_lakehouse_id, "raw_forecasts", mode="overwrite")
+    print(f"[score] Wrote {len(combined)} raw forecast rows")
+else:
+    print("[score] WARNING: No forecasts produced.")
+print("[score] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 06 - Version Snapshot
+# ─────────────────────────────────────────────────────────────────
+nb("06_version_snapshot",
+   ["silver_lakehouse_id", "gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "versioning_module"],
+   '''
+output_table = cfg("output_table")
+keep_n = cfg("keep_n_snapshots")
+
+print(f"[version] Creating snapshot in gold.{output_table}")
+create_forecast_snapshot(spark, silver_lakehouse_id, gold_lakehouse_id,
+                         output_table=output_table, keep_n=keep_n)
+print("[version] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 07 - Demand to Capacity
+# ─────────────────────────────────────────────────────────────────
+nb("07_demand_to_capacity",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "capacity_module"],
+   '''
+forecast_table = cfg("output_table")
+capacity_output = cfg("capacity_output_table")
+prod_table = cfg("production_history_table")
+grain_columns = cfg("grain_columns")
+
+print("[capacity] Translating demand to capacity.")
+translate_demand_to_capacity(
+    spark, gold_lakehouse_id, bronze_lakehouse_id,
+    forecast_table=forecast_table, capacity_output_table=capacity_output,
+    production_table=prod_table, grain_columns=grain_columns,
+    rolling_months=cfg("rolling_months"), tons_to_lf_factor=cfg("tons_to_lf_factor"),
+    width_column=cfg("width_column"), speed_column=cfg("speed_column"),
+    line_id_column=cfg("line_id_column"),
+)
+print("[capacity] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 08 - Sales Overrides
+# ─────────────────────────────────────────────────────────────────
+nb("08_sales_overrides",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "override_module"],
+   '''
+forecast_table = cfg("output_table")
+overrides_table = cfg("overrides_table")
+grain_columns = cfg("grain_columns")
+
+print("[overrides] Applying sales overrides.")
+apply_sales_overrides(spark, gold_lakehouse_id, bronze_lakehouse_id,
+                      forecast_table=forecast_table, overrides_table=overrides_table,
+                      grain_columns=grain_columns)
+print("[overrides] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 09 - Market Adjustments
+# ─────────────────────────────────────────────────────────────────
+nb("09_market_adjustments",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "override_module"],
+   '''
+forecast_table = cfg("output_table")
+adj_table = cfg("adjustments_table")
+scale = cfg("default_scale_factor")
+grain_columns = cfg("grain_columns")
+
+print("[market] Applying market adjustments.")
+apply_market_adjustments(spark, gold_lakehouse_id, bronze_lakehouse_id,
+                         forecast_table=forecast_table, adjustments_table=adj_table,
+                         default_scale_factor=scale, grain_columns=grain_columns)
+print("[market] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 10 - Consensus Build
+# ─────────────────────────────────────────────────────────────────
+nb("10_consensus_build",
+   ["gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+forecast_table = cfg("output_table")
+grain_columns = cfg("grain_columns")
+
+print("[consensus] Building consensus forecast.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
+pdf = fc_df.toPandas()
+
+grain_key = grain_columns + ["period_date"] if "period_date" in pdf.columns else grain_columns
+numeric_cols = pdf.select_dtypes(include="number").columns.tolist()
+consensus = pdf.groupby(grain_key, as_index=False)[numeric_cols].mean()
+consensus["forecast_type"] = "consensus"
+
+write_lakehouse_table(spark.createDataFrame(consensus), gold_lakehouse_id, "consensus_forecast", mode="overwrite")
+print(f"[consensus] {len(consensus)} consensus rows written.")
+print("[consensus] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 11 - Accuracy Tracking
+# ─────────────────────────────────────────────────────────────────
+nb("11_accuracy_tracking",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module", "accuracy_module"],
+   '''
+forecast_table = cfg("output_table")
+accuracy_table = cfg("accuracy_table")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+date_column = cfg("date_column")
+
+print("[accuracy] Tracking forecast accuracy.")
+track_accuracy(spark, gold_lakehouse_id, bronze_lakehouse_id,
+               forecast_table=forecast_table, accuracy_table=accuracy_table,
+               target_column=target_column, grain_columns=grain_columns,
+               date_column=date_column)
+print("[accuracy] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 12 - Aggregate Gold
+# ─────────────────────────────────────────────────────────────────
+nb("12_aggregate_gold",
+   ["gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+forecast_table = cfg("output_table")
+hierarchy = cfg("hierarchy_levels")
+
+print(f"[aggregate] Aggregating gold.{forecast_table} across {hierarchy}")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
+pdf = fc_df.toPandas()
+
+numeric_cols = pdf.select_dtypes(include="number").columns.tolist()
+agg_frames = []
+for level in hierarchy:
+    if level in pdf.columns:
+        agg = pdf.groupby(level, as_index=False)[numeric_cols].sum()
+        agg["hierarchy_level"] = level
+        agg_frames.append(agg)
+
+if agg_frames:
+    import pandas as pd
+    combined = pd.concat(agg_frames, ignore_index=True)
+    write_lakehouse_table(spark.createDataFrame(combined), gold_lakehouse_id, "aggregated_forecast", mode="overwrite")
+    print(f"[aggregate] {len(combined)} aggregated rows")
+print("[aggregate] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 13 - Budget Comparison
+# ─────────────────────────────────────────────────────────────────
+nb("13_budget_comparison",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+import pandas as pd
+
+forecast_table = cfg("output_table")
+budget_table = cfg("budget_table")
+comparison_output = cfg("comparison_output_table")
+over_thresh = cfg("over_forecast_threshold")
+under_thresh = cfg("under_forecast_threshold")
+hierarchy = cfg("hierarchy_levels")
+
+print("[budget] Comparing forecast vs budget.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+budget_df = read_lakehouse_table(spark, bronze_lakehouse_id, budget_table).toPandas()
+
+common = list(set(fc_df.columns) & set(budget_df.columns) - {"tons", "budget_tons"})
+if common:
+    merged = fc_df.merge(budget_df, on=common, how="inner", suffixes=("_fc", "_bgt"))
+    if "tons" in merged.columns and "budget_tons" in merged.columns:
+        merged["variance_pct"] = (merged["tons"] - merged["budget_tons"]) / merged["budget_tons"].replace(0, float("nan"))
+        merged["flag"] = merged["variance_pct"].apply(
+            lambda v: "over" if v > over_thresh else ("under" if v < under_thresh else "ok"))
+        write_lakehouse_table(spark.createDataFrame(merged), gold_lakehouse_id, comparison_output, mode="overwrite")
+        print(f"[budget] {len(merged)} comparison rows")
+    else:
+        print("[budget] Missing tons/budget_tons columns for comparison")
+else:
+    print("[budget] No common columns for merge")
+print("[budget] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# P2_01 - External Signals
+# ─────────────────────────────────────────────────────────────────
+nb("P2_01_external_signals",
+   ["silver_lakehouse_id", "bronze_lakehouse_id", "gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+signal_columns = cfg("signal_columns")
+signals_table = cfg("signals_table")
+
+print("[signals] Enriching feature table with external signals.")
+signals_df = read_lakehouse_table(spark, bronze_lakehouse_id, signals_table).toPandas()
+feature_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table").toPandas()
+
+if "period_date" in feature_df.columns and "period_date" in signals_df.columns:
+    enriched = feature_df.merge(signals_df, on="period_date", how="left")
+    write_lakehouse_table(spark.createDataFrame(enriched), gold_lakehouse_id, "enriched_features", mode="overwrite")
+    print(f"[signals] {len(enriched)} enriched rows written to gold")
+else:
+    print("[signals] WARNING: period_date not found for merge")
+print("[signals] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# P2_02 - Scenario Modeling
+# ─────────────────────────────────────────────────────────────────
+nb("P2_02_scenario_modeling",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+import pandas as pd
+
+forecast_table = cfg("output_table")
+scenarios_table = cfg("scenarios_table")
+grain_columns = cfg("grain_columns")
+
+print("[scenarios] Applying scenario multipliers.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+sc_df = read_lakehouse_table(spark, bronze_lakehouse_id, scenarios_table).toPandas()
+
+scenario_results = []
+for _, scenario in sc_df.iterrows():
+    s = fc_df.copy()
+    s["scenario_id"] = scenario.get("scenario_id", "unknown")
+    s["scenario_name"] = scenario.get("scenario_name", "")
+    vol_mult = float(scenario.get("volume_multiplier", 1.0))
+    if "tons" in s.columns:
+        s["tons"] = s["tons"] * vol_mult
+    scenario_results.append(s)
+
+if scenario_results:
+    combined = pd.concat(scenario_results, ignore_index=True)
+    write_lakehouse_table(spark.createDataFrame(combined), gold_lakehouse_id, "scenario_forecasts", mode="overwrite")
+    print(f"[scenarios] {len(combined)} scenario forecast rows")
+print("[scenarios] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# P2_03 - SKU Classification
+# ─────────────────────────────────────────────────────────────────
+nb("P2_03_sku_classification",
+   ["silver_lakehouse_id", "gold_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+import pandas as pd
+import numpy as np
+
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+output_table = cfg("sku_classification_output_table")
+runner_thresh = cfg("runner_threshold")
+repeater_thresh = cfg("repeater_threshold")
+xyz_x = cfg("xyz_cv_threshold_x")
+xyz_y = cfg("xyz_cv_threshold_y")
+
+print("[sku_class] Classifying SKUs (ABC-XYZ + Runner/Repeater/Stranger).")
+feature_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table").toPandas()
+
+if target_column in feature_df.columns and grain_columns[0] in feature_df.columns:
+    sku_stats = feature_df.groupby(grain_columns).agg(
+        total_volume=(target_column, "sum"),
+        n_periods=(target_column, "count"),
+        cv=(target_column, lambda x: x.std() / x.mean() if x.mean() > 0 else float("inf")),
+    ).reset_index()
+
+    total = sku_stats["total_volume"].sum()
+    sku_stats = sku_stats.sort_values("total_volume", ascending=False)
+    sku_stats["cumulative_pct"] = sku_stats["total_volume"].cumsum() / total
+
+    sku_stats["abc_class"] = np.where(sku_stats["cumulative_pct"] <= 0.8, "A",
+                             np.where(sku_stats["cumulative_pct"] <= 0.95, "B", "C"))
+    sku_stats["xyz_class"] = np.where(sku_stats["cv"] <= xyz_x, "X",
+                             np.where(sku_stats["cv"] <= xyz_y, "Y", "Z"))
+
+    max_periods = sku_stats["n_periods"].max()
+    sku_stats["frequency_pct"] = sku_stats["n_periods"] / max_periods
+    sku_stats["rrs_class"] = np.where(sku_stats["frequency_pct"] >= repeater_thresh, "Repeater",
+                             np.where(sku_stats["frequency_pct"] >= runner_thresh, "Runner", "Stranger"))
+
+    write_lakehouse_table(spark.createDataFrame(sku_stats), gold_lakehouse_id, output_table, mode="overwrite")
+    print(f"[sku_class] {len(sku_stats)} SKU classifications written")
+print("[sku_class] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# P2_04 - Inventory Alignment
+# ─────────────────────────────────────────────────────────────────
+nb("P2_04_inventory_alignment",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+forecast_table = cfg("output_table")
+grain_columns = cfg("grain_columns")
+
+print("[inventory] Aligning forecast with inventory positions.")
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+inv_df = read_lakehouse_table(spark, bronze_lakehouse_id, "inventory_finished_goods").toPandas()
+
+common_cols = [c for c in grain_columns if c in fc_df.columns and c in inv_df.columns]
+if common_cols:
+    inv_latest = inv_df.sort_values("period_date").groupby(common_cols).last().reset_index()
+    aligned = fc_df.merge(inv_latest[common_cols + ["on_hand_tons", "safety_stock_tons"]],
+                          on=common_cols, how="left")
+    if "tons" in aligned.columns and "on_hand_tons" in aligned.columns:
+        aligned["net_requirement"] = aligned["tons"] - aligned["on_hand_tons"].fillna(0)
+        aligned["stock_coverage_flag"] = (aligned["on_hand_tons"].fillna(0) >= aligned["safety_stock_tons"].fillna(0)).astype(int)
+
+    write_lakehouse_table(spark.createDataFrame(aligned), gold_lakehouse_id, "inventory_aligned_forecast", mode="overwrite")
+    print(f"[inventory] {len(aligned)} aligned rows")
+else:
+    print("[inventory] WARNING: No common grain columns for merge")
+print("[inventory] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# GENERATE FILES
+# ─────────────────────────────────────────────────────────────────
+
+def generate_notebook(name: str, spec: dict) -> str:
+    """Generate clean Python source for a notebook."""
+    lines = [
+        f"# Fabric Notebook",
+        f"# {name}.py",
+        "",
+    ]
+
+    # Parameter cell with lakehouse IDs only
+    lines.append("# @parameters")
+    for p in spec["params"]:
+        lines.append(f'{p} = ""')
+    lines.append("# @end_parameters")
+    lines.append("")
+
+    # %run directives
+    for module in spec["runs"]:
+        lines.append(f"# %run ../modules/{module}")
+    lines.append("")
+
+    # Code body
+    code = spec["code"].strip()
+    lines.append(code)
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    print("Rewriting all main notebooks...\n")
+    for name, spec in NOTEBOOKS.items():
+        content = generate_notebook(name, spec)
+        path = MAIN_DIR / f"{name}.py"
+        path.write_text(content, encoding="utf-8")
+        print(f"  {name}.py  ({len(spec['params'])} params, {len(spec['runs'])} runs, {len(content.splitlines())} lines)")
+    print(f"\nRewrote {len(NOTEBOOKS)} notebooks.")

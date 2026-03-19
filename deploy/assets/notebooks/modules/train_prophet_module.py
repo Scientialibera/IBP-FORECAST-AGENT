@@ -1,31 +1,5 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # train_prophet_module.py -- Prophet training per grain
-
-# CELL ********************
 
 import warnings
 import pandas as pd
@@ -144,17 +118,3 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
 
     print(f"[prophet] Complete. {len(results)} prediction rows, avg MAPE={agg_metrics.get('mape', 'N/A')}")
     return pd.DataFrame(results), agg_metrics
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

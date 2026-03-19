@@ -263,17 +263,18 @@ function Deploy-NotebooksParallel {
 $projectFolderName = $config.naming.project_folder
 if ([string]::IsNullOrWhiteSpace($projectFolderName)) { $projectFolderName = "IBP Forecast" }
 
-# 1. Folders (sequential -- fast, only 5)
-Write-Host "`n[1/5] Creating project folder '$projectFolderName'..." -ForegroundColor Yellow
+# 1. Folders
+Write-Host "`n[1/8] Creating project folder '$projectFolderName'..." -ForegroundColor Yellow
 $projectFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName $projectFolderName
-Write-Host "`n[2/5] Creating sub-folders..." -ForegroundColor Yellow
+Write-Host "`n[2/8] Creating sub-folders..." -ForegroundColor Yellow
 $dataFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "data"      -ParentFolderId $projectFolderId
 $notebooksFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "notebooks" -ParentFolderId $projectFolderId
+$pipelinesFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "pipelines" -ParentFolderId $projectFolderId
 $mainFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"      -ParentFolderId $notebooksFolderId
 $modulesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"   -ParentFolderId $notebooksFolderId
 
-# 2. Lakehouses (sequential -- only 5)
-Write-Host "`n[3/5] Creating lakehouses..." -ForegroundColor Yellow
+# 2. Lakehouses
+Write-Host "`n[3/8] Creating lakehouses..." -ForegroundColor Yellow
 $lakehouseIds = @{}
 foreach ($entry in @(
     @{ key = "source";  id = $config.source.source_lakehouse_id;  name = $config.source.source_lakehouse_name },
@@ -291,14 +292,78 @@ foreach ($entry in @(
 }
 $sourceId = $lakehouseIds["source"]; $landingId = $lakehouseIds["landing"]; $bronzeId = $lakehouseIds["bronze"]; $silverId = $lakehouseIds["silver"]; $goldId = $lakehouseIds["gold"]
 
-# 3. Notebooks -- PARALLEL
-Write-Host "`n[4/5] Deploying module notebooks (parallel)..." -ForegroundColor Yellow
-$modulesDir = Join-Path $PSScriptRoot "assets" "notebooks" "modules"
+# 3. Convert notebooks (plain .py → Fabric format, output to build/)
+$buildDir = Join-Path (Join-Path $PSScriptRoot "build") "notebooks"
+Write-Host "`n[4/8] Converting notebooks with lakehouse bindings..." -ForegroundColor Yellow
+$convertScript = Join-Path $PSScriptRoot "convert_notebooks.py"
+python $convertScript `
+    --workspace-id $workspaceId `
+    --source-id $sourceId --source-name $config.source.source_lakehouse_name `
+    --landing-id $landingId --landing-name $config.lakehouses.landing_name `
+    --bronze-id $bronzeId --bronze-name $config.lakehouses.bronze_name `
+    --silver-id $silverId --silver-name $config.lakehouses.silver_name `
+    --gold-id $goldId --gold-name $config.lakehouses.gold_name `
+    --output-dir $buildDir
+
+# 4. Notebooks -- PARALLEL (deploy from build/ directory)
+Write-Host "`n[5/8] Deploying module notebooks (parallel)..." -ForegroundColor Yellow
+$modulesDir = Join-Path $buildDir "modules"
 Deploy-NotebooksParallel -WorkspaceId $workspaceId -FolderId $modulesFolderId -LocalDir $modulesDir -Label "module"
 
-Write-Host "`n[5/5] Deploying main notebooks (parallel)..." -ForegroundColor Yellow
-$mainDir = Join-Path $PSScriptRoot "assets" "notebooks" "main"
+Write-Host "`n[6/8] Deploying main notebooks (parallel)..." -ForegroundColor Yellow
+$mainDir = Join-Path $buildDir "main"
 Deploy-NotebooksParallel -WorkspaceId $workspaceId -FolderId $mainFolderId -LocalDir $mainDir -Label "main"
+
+# 6. Generate pipeline JSON definitions
+Write-Host "`n[7/8] Generating pipeline definitions..." -ForegroundColor Yellow
+$genScript = Join-Path $PSScriptRoot "generate_pipelines.py"
+python $genScript
+
+# 7. Deploy Data Pipelines into the pipelines/ folder
+Write-Host "`n[8/8] Deploying Fabric Data Pipelines..." -ForegroundColor Yellow
+$pipelinesDir = Join-Path (Join-Path $PSScriptRoot "assets") "pipelines"
+if (Test-Path $pipelinesDir) {
+    $allNotebooks = Get-FabricItems -WorkspaceId $workspaceId -Type "Notebook"
+    $nbMap = @{}
+    foreach ($nb in $allNotebooks) { $nbMap[$nb.displayName] = $nb.id }
+
+    foreach ($pFile in (Get-ChildItem $pipelinesDir -Filter "*.json" | Sort-Object Name)) {
+        $pName = [System.IO.Path]::GetFileNameWithoutExtension($pFile.Name)
+        $template = Get-Content $pFile.FullName -Raw -Encoding UTF8
+
+        $template = $template.Replace('{{WORKSPACE_ID}}', $workspaceId)
+        foreach ($kvp in $nbMap.GetEnumerator()) {
+            $template = $template.Replace("{{NB_$($kvp.Key)}}", $kvp.Value)
+        }
+        $template = $template.Replace('{{SOURCE_LH}}', $sourceId)
+        $template = $template.Replace('{{LANDING_LH}}', $landingId)
+        $template = $template.Replace('{{BRONZE_LH}}', $bronzeId)
+        $template = $template.Replace('{{SILVER_LH}}', $silverId)
+        $template = $template.Replace('{{GOLD_LH}}', $goldId)
+
+        $payloadBase64 = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($template))
+        $definition = @{
+            parts = @(@{ path = "pipeline-content.json"; payload = $payloadBase64; payloadType = "InlineBase64" })
+        }
+
+        $existing = Get-FabricItems -WorkspaceId $workspaceId -Type "DataPipeline" | Where-Object { $_.displayName -eq $pName } | Select-Object -First 1
+        try {
+            if (-not $existing) {
+                $body = @{ displayName = $pName; type = "DataPipeline"; definition = $definition }
+                if ($pipelinesFolderId) { $body.folderId = $pipelinesFolderId }
+                Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body | Out-Null
+                Write-Host "  Pipeline '$pName' -- created (in pipelines/ folder)"
+            } else {
+                Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items/$($existing.id)/updateDefinition" -Body @{ definition = $definition } | Out-Null
+                Write-Host "  Pipeline '$pName' -- updated"
+            }
+        } catch {
+            Write-Warning "  Pipeline '$pName' -- FAILED: $_"
+        }
+    }
+} else {
+    Write-Host "  No pipelines directory found, skipping."
+}
 
 # ── Summary ─────────────────────────────────────────────────────
 Write-Host "`n=== Deployment Complete ===" -ForegroundColor Green
@@ -310,7 +375,8 @@ Write-Host "  silver:  $silverId"
 Write-Host "  gold:    $goldId"
 Write-Host "`nFolder structure:" -ForegroundColor Cyan
 Write-Host "  $projectFolderName/"
-Write-Host "    data/  (5 lakehouses)"
+Write-Host "    data/       (5 lakehouses)"
 Write-Host "    notebooks/"
-Write-Host "      main/    (17 notebooks)"
-Write-Host "      modules/ (12 notebooks)"
+Write-Host "      main/     (17 notebooks)"
+Write-Host "      modules/  (12 notebooks)"
+Write-Host "    pipelines/  (3 data pipelines)"

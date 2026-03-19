@@ -1,31 +1,5 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # scoring_module.py -- Batch scoring / forward forecasting for all model types
-
-# CELL ********************
 
 import warnings
 import pandas as pd
@@ -197,17 +171,3 @@ def forecast_ets_forward(df: pd.DataFrame, date_column: str, grain_columns: list
             continue
 
     return pd.DataFrame(results)
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

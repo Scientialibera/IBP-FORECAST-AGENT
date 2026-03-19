@@ -1,31 +1,5 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # accuracy_module.py -- Retrospective accuracy tracking: compare prior forecasts to actuals
-
-# CELL ********************
 
 import pandas as pd
 import numpy as np
@@ -132,17 +106,3 @@ def recommend_model_by_grain(accuracy_df: pd.DataFrame,
     best = best[valid_cols + ["model_type", metric]].copy()
     best.rename(columns={metric: f"best_{metric}"}, inplace=True)
     return best
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

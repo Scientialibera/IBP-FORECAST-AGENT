@@ -1,135 +1,24 @@
-# Fabric notebook source
-# METADATA ********************
+# Fabric Notebook
+# 04_train_sarima.py
 
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
+# @parameters
+silver_lakehouse_id = ""
+# @end_parameters
 
-# MARKDOWN ********************
+# %run ../modules/ibp_config
+# %run ../modules/config_module
+# %run ../modules/utils_module
+# %run ../modules/train_sarima_module
 
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# 04_train_sarima.py -- Train SARIMA per grain on Silver feature table
-# Phase 1: Required model
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run config_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run utils_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run train_sarima_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-params = get_notebook_params()
-
-silver_lakehouse_id = params["silver_lakehouse_id"]
-date_column = params["date_column"]
-target_column = params["target_column"]
-grain_columns = parse_list_param(params["grain_columns"])
-test_split_ratio = float(params.get("test_split_ratio") or 0.2)
-sarima_order = tuple(parse_int_list_param(params.get("sarima_order") or "[1,1,1]"))
-sarima_seasonal_order = tuple(parse_int_list_param(params.get("sarima_seasonal_order") or "[1,1,1,12]"))
-experiment_name = params.get("experiment_name") or "ibp_demand_forecast"
-model_prefix = params.get("registered_model_prefix") or "ibp_model"
-min_series_length = int(params.get("min_series_length") or 24)
-
-if not silver_lakehouse_id:
-    raise ValueError("silver_lakehouse_id is required.")
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+test_split_ratio = cfg("test_split_ratio")
+sarima_order = tuple(cfg("sarima_order"))
+sarima_seasonal_order = tuple(cfg("sarima_seasonal_order"))
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
 
 print("[sarima] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
@@ -145,21 +34,5 @@ results_df, agg_metrics = train_sarima_per_grain(
 )
 
 if not results_df.empty:
-    preds_spark = spark.createDataFrame(results_df)
-    write_lakehouse_table(preds_spark, silver_lakehouse_id, "sarima_predictions", mode="overwrite")
-
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "sarima_predictions", mode="overwrite")
 print("[sarima] Complete.")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

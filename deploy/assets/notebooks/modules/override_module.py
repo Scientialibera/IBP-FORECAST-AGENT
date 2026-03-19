@@ -1,31 +1,5 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # override_module.py -- Sales overrides and market adjustments as transparent layers
-
-# CELL ********************
 
 import pandas as pd
 import numpy as np
@@ -131,17 +105,3 @@ def build_consensus(system_df: pd.DataFrame, sales_df: pd.DataFrame,
     consensus.drop(columns=["system_forecast"], inplace=True)
 
     return consensus
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

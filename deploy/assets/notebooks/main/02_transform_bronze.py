@@ -1,102 +1,23 @@
-# Fabric notebook source
-# METADATA ********************
+# Fabric Notebook
+# 02_transform_bronze.py
 
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
+# @parameters
+landing_lakehouse_id = ""
+bronze_lakehouse_id = ""
+# @end_parameters
 
-# MARKDOWN ********************
+# %run ../modules/ibp_config
+# %run ../modules/config_module
 
-# METADATA ********************
+source_tables = cfg("source_tables")
 
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# 02_transform_bronze.py -- Landing -> Bronze cleansing and standardization
-# Phase 1: Core Capability
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run config_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-from pyspark.sql import functions as F
-
-params = get_notebook_params()
-
-landing_lakehouse_id = params["landing_lakehouse_id"]
-bronze_lakehouse_id = params["bronze_lakehouse_id"]
-source_tables = parse_list_param(params["source_tables"])
-
-if not landing_lakehouse_id:
-    raise ValueError("landing_lakehouse_id is required.")
-if not bronze_lakehouse_id:
-    raise ValueError("bronze_lakehouse_id is required.")
-
+print(f"[bronze] Landing → Bronze")
 for table_name in source_tables:
-    print(f"\n[transform] Cleaning: {table_name}")
+    print(f"  Processing: {table_name}")
     df = read_lakehouse_table(spark, landing_lakehouse_id, table_name)
+    df_clean = df.dropDuplicates().dropna(how="all")
+    row_count = df_clean.count()
+    write_lakehouse_table(df_clean, bronze_lakehouse_id, table_name, mode="overwrite")
+    print(f"  {table_name}: {row_count} rows written to bronze")
 
-    original_count = df.count()
-    df = df.dropDuplicates()
-    dedup_count = df.count()
-    df = df.dropna(how="all")
-    clean_count = df.count()
-
-    df = df.withColumn("_ingested_at", F.current_timestamp())
-
-    write_lakehouse_table(df, bronze_lakehouse_id, table_name, mode="overwrite")
-    print(f"[transform] {table_name}: {original_count} -> {dedup_count} (dedup) -> {clean_count} (clean)")
-
-print("\n[transform] Complete.")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
+print("[bronze] Complete.")

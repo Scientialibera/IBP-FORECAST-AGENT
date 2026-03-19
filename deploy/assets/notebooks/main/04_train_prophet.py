@@ -1,136 +1,25 @@
-# Fabric notebook source
-# METADATA ********************
+# Fabric Notebook
+# 04_train_prophet.py
 
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
+# @parameters
+silver_lakehouse_id = ""
+# @end_parameters
 
-# MARKDOWN ********************
+# %run ../modules/ibp_config
+# %run ../modules/config_module
+# %run ../modules/utils_module
+# %run ../modules/train_prophet_module
 
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# 04_train_prophet.py -- Train Prophet per grain on Silver feature table
-# Phase 1: Required model
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run config_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run utils_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-%run train_prophet_module
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# CELL ********************
-
-params = get_notebook_params()
-
-silver_lakehouse_id = params["silver_lakehouse_id"]
-date_column = params["date_column"]
-target_column = params["target_column"]
-grain_columns = parse_list_param(params["grain_columns"])
-test_split_ratio = float(params.get("test_split_ratio") or 0.2)
-yearly = str(params.get("prophet_yearly_seasonality") or "true").lower() == "true"
-weekly = str(params.get("prophet_weekly_seasonality") or "false").lower() == "true"
-changepoint_prior = float(params.get("prophet_changepoint_prior") or 0.05)
-experiment_name = params.get("experiment_name") or "ibp_demand_forecast"
-model_prefix = params.get("registered_model_prefix") or "ibp_model"
-min_series_length = int(params.get("min_series_length") or 24)
-
-if not silver_lakehouse_id:
-    raise ValueError("silver_lakehouse_id is required.")
+date_column = cfg("date_column")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+test_split_ratio = cfg("test_split_ratio")
+yearly = cfg("prophet_yearly_seasonality")
+weekly = cfg("prophet_weekly_seasonality")
+changepoint_prior = cfg("prophet_changepoint_prior")
+experiment_name = cfg("experiment_name")
+model_prefix = cfg("registered_model_prefix")
+min_series_length = cfg("min_series_length")
 
 print("[prophet] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
@@ -146,21 +35,5 @@ results_df, agg_metrics = train_prophet_per_grain(
 )
 
 if not results_df.empty:
-    preds_spark = spark.createDataFrame(results_df)
-    write_lakehouse_table(preds_spark, silver_lakehouse_id, "prophet_predictions", mode="overwrite")
-
+    write_lakehouse_table(spark.createDataFrame(results_df), silver_lakehouse_id, "prophet_predictions", mode="overwrite")
 print("[prophet] Complete.")
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }

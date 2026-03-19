@@ -1,32 +1,6 @@
-# Fabric notebook source
-# METADATA ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
-# METADATA ********************
-
-# CELL ********************
-
-# META {
-# META   "kernel_info": {
-# META     "name": "synapse_pyspark"
-# META   },
-# META   "dependencies": {}
-# META }
-
-# MARKDOWN ********************
-
+# Fabric Notebook -- Module
 # train_var_module.py -- VAR (Vector Autoregression) training per grain
 # Multivariate time series: forecasts target using correlated features.
-
-# CELL ********************
 
 import warnings
 import pandas as pd
@@ -136,17 +110,3 @@ def train_var_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
 
     print(f"[var] Complete. {len(results)} prediction rows, avg MAPE={agg_metrics.get('mape', 'N/A')}")
     return pd.DataFrame(results), agg_metrics
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
-
-# METADATA ********************
-
-# META {
-# META   "language": "python",
-# META   "language_group": "synapse_pyspark"
-# META }
