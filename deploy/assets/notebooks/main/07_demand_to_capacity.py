@@ -1,5 +1,6 @@
 # Fabric Notebook
-# 07_demand_to_capacity.py
+# 07_demand_to_capacity.py -- Translate tons -> lineal feet -> production hours
+# Phase 1: Core Capability
 
 # @parameters
 gold_lakehouse_id = ""
@@ -9,35 +10,73 @@ bronze_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/versioning_module
 # %run ../modules/capacity_module
 
 forecast_table = cfg("output_table")
-capacity_output = cfg("capacity_output_table")
-prod_table = cfg("production_history_table")
-width_col = cfg("width_column")
-speed_col = cfg("speed_column")
-line_id_col = cfg("line_id_column")
+capacity_output_table = cfg("capacity_output_table")
+production_table = cfg("production_history_table")
+grain_columns = cfg("grain_columns")
 rolling_months = cfg("rolling_months")
-tons_to_lf = cfg("tons_to_lf_factor")
+tons_to_lf_factor = cfg("tons_to_lf_factor")
+width_column = cfg("width_column")
+speed_column = cfg("speed_column")
+line_id_column = cfg("line_id_column")
 
-print("[capacity] Loading forecast and production data.")
-fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
-prod_df = read_lakehouse_table(spark, bronze_lakehouse_id, prod_table).toPandas()
-print(f"[capacity] Forecast: {len(fc_df)} rows, Production: {len(prod_df)} rows")
+if not gold_lakehouse_id or not bronze_lakehouse_id:
+    raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
 
-prod_avgs = compute_rolling_production_averages(
-    prod_df, width_column=width_col, speed_column=speed_col,
-    line_id_column=line_id_col, plant_column="plant_id",
-    sku_column="sku_id", date_column="period_date",
-    rolling_months=rolling_months,
-)
-print(f"[capacity] Computed rolling averages: {len(prod_avgs)} rows")
+print("[capacity] Loading latest forecast from gold.")
+forecast_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
 
-capacity_df = translate_demand_to_capacity(
-    fc_df, prod_avgs,
-    plant_column="plant_id", sku_column="sku_id",
-    line_id_column=line_id_col, tons_to_lf_factor=tons_to_lf,
-)
-write_lakehouse_table(spark.createDataFrame(capacity_df), gold_lakehouse_id, capacity_output, mode="overwrite")
-print(f"[capacity] Wrote {len(capacity_df)} capacity rows")
-print("[capacity] Complete.")
+consensus = forecast_spark.filter(forecast_spark.version_type == "consensus")
+if consensus.count() == 0:
+    print("[capacity] No consensus found, using latest system forecast.")
+    consensus = forecast_spark.filter(forecast_spark.version_type == "system")
+
+forecast_pdf = consensus.toPandas()
+if forecast_pdf.empty:
+    print("[capacity] No forecast data. Exiting.")
+else:
+    latest_vid = forecast_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
+    forecast_pdf = forecast_pdf[forecast_pdf["version_id"] == latest_vid]
+    print(f"[capacity] Using version {latest_vid[:8]}... ({len(forecast_pdf)} rows)")
+
+    print("[capacity] Loading production history from bronze.")
+    prod_spark = read_lakehouse_table(spark, bronze_lakehouse_id, production_table)
+    prod_pdf = prod_spark.toPandas()
+
+    plant_col = "plant_id"
+    sku_col = "sku_id"
+
+    prod_avgs = compute_rolling_production_averages(
+        prod_pdf, width_column=width_column, speed_column=speed_column,
+        line_id_column=line_id_column, plant_column=plant_col,
+        sku_column=sku_col, date_column="period_date",
+        rolling_months=rolling_months,
+    )
+    print(f"[capacity] Computed rolling averages for {len(prod_avgs)} plant/sku/line combos")
+
+    if "final_forecast_tons" in forecast_pdf.columns:
+        forecast_pdf["forecast_tons"] = forecast_pdf["final_forecast_tons"]
+
+    capacity_df = translate_demand_to_capacity(
+        forecast_pdf, prod_avgs,
+        plant_column=plant_col, sku_column=sku_col,
+        line_id_column=line_id_column,
+        tons_to_lf_factor=tons_to_lf_factor,
+    )
+
+    capacity_spark = spark.createDataFrame(capacity_df)
+    write_lakehouse_table(capacity_spark, gold_lakehouse_id, capacity_output_table, mode="overwrite")
+    print(f"[capacity] Wrote {len(capacity_df)} rows to gold.{capacity_output_table}")
+
+    plant_summary = capacity_df.groupby(plant_col).agg(
+        total_tons=("forecast_tons", "sum"),
+        total_lf=("lineal_feet", "sum"),
+        total_hours=("production_hours", "sum"),
+    ).reset_index()
+    print("\n[capacity] Plant Summary:")
+    print(plant_summary.to_string(index=False))
+
+print("\n[capacity] Complete.")

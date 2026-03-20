@@ -1,5 +1,6 @@
 # Fabric Notebook
-# 10_consensus_build.py
+# 10_consensus_build.py -- Build final consensus forecast from all layers
+# Phase 1: Core Capability -- system + sales_delta * market_factor
 
 # @parameters
 gold_lakehouse_id = ""
@@ -8,27 +9,57 @@ gold_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/versioning_module
 # %run ../modules/override_module
 
 forecast_table = cfg("output_table")
 grain_columns = cfg("grain_columns")
 
-print("[consensus] Building consensus forecast.")
-all_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
-print(f"[consensus] Total versioned rows: {len(all_df)}")
+if not gold_lakehouse_id:
+    raise ValueError("gold_lakehouse_id is required.")
 
-if all_df.empty:
-    print("[consensus] WARNING: No forecast data.")
+print("[consensus] Loading all forecast layers.")
+all_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
+all_pdf = all_spark.toPandas()
+
+if all_pdf.empty:
+    print("[consensus] No forecast data. Run notebooks 04-09 first.")
 else:
-    system_df = all_df[all_df["version_type"] == "system"] if "version_type" in all_df.columns else all_df
-    sales_df = all_df[all_df["version_type"] == "sales_override"] if "version_type" in all_df.columns else None
-    market_df = all_df[all_df["version_type"] == "market_adjusted"] if "version_type" in all_df.columns else None
+    # Get latest of each version type
+    system_pdf = all_pdf[all_pdf["version_type"] == "system"]
+    sales_pdf = all_pdf[all_pdf["version_type"] == "sales"]
+    market_pdf = all_pdf[all_pdf["version_type"] == "market_adjusted"]
 
-    period_col = "period" if "period" in system_df.columns else "period_date"
-    consensus = build_consensus(system_df, sales_df, market_df,
-                                grain_columns=grain_columns, period_column=period_col)
-    consensus["forecast_type"] = "consensus"
+    if system_pdf.empty:
+        print("[consensus] No system baseline found. Exiting.")
+    else:
+        latest_sys_vid = system_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
+        system_latest = system_pdf[system_pdf["version_id"] == latest_sys_vid]
 
-    write_lakehouse_table(spark.createDataFrame(consensus), gold_lakehouse_id, "consensus_forecast", mode="overwrite")
-    print(f"[consensus] {len(consensus)} consensus rows written.")
+        sales_latest = None
+        if not sales_pdf.empty:
+            latest_sales_vid = sales_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
+            sales_latest = sales_pdf[sales_pdf["version_id"] == latest_sales_vid]
+
+        market_latest = None
+        if not market_pdf.empty:
+            latest_mkt_vid = market_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
+            market_latest = market_pdf[market_pdf["version_id"] == latest_mkt_vid]
+
+        print(f"[consensus] System: {len(system_latest)} rows")
+        print(f"[consensus] Sales: {len(sales_latest) if sales_latest is not None else 0} rows")
+        print(f"[consensus] Market: {len(market_latest) if market_latest is not None else 0} rows")
+
+        consensus_df = build_consensus(system_latest, sales_latest, market_latest, grain_columns)
+
+        versioned_df, vid = stamp_forecast_version(
+            consensus_df, version_type="consensus", model_type="consensus",
+            parent_version_id=latest_sys_vid, created_by="system"
+        )
+        append_versioned_forecast(spark, gold_lakehouse_id, forecast_table, versioned_df)
+        print(f"[consensus] Consensus version: {vid[:8]}... ({len(versioned_df)} rows)")
+
+        total_forecast = versioned_df["final_forecast_tons"].sum()
+        print(f"[consensus] Total consensus forecast: {total_forecast:,.1f} tons")
+
 print("[consensus] Complete.")

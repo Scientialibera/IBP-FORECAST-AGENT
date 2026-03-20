@@ -19,6 +19,15 @@ reporting_table = cfg("reporting_table")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 
+print("[reporting] Copying dimension tables (master_sku, master_plant) to gold for semantic model...")
+for dim_table in ["master_sku", "master_plant"]:
+    try:
+        dim_df = read_lakehouse_table(spark, bronze_lakehouse_id, dim_table)
+        write_lakehouse_table(dim_df, gold_lakehouse_id, dim_table, mode="overwrite")
+        print(f"  {dim_table}: {dim_df.count()} rows copied to gold")
+    except Exception as e:
+        print(f"  {dim_table}: WARN - {e}")
+
 print("[reporting] Building unified actuals-vs-forecast reporting view.")
 
 fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()

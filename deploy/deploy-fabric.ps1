@@ -267,6 +267,7 @@ if ([string]::IsNullOrWhiteSpace($projectFolderName)) { $projectFolderName = "IB
 
 # 1. Folders
 Write-Host "`n[1/8] Creating project folder '$projectFolderName'..." -ForegroundColor Yellow
+# Semantic model is created by notebook 15, not here -- infra only creates the folder
 $projectFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName $projectFolderName
 Write-Host "`n[2/8] Creating sub-folders..." -ForegroundColor Yellow
 $dataFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "data"      -ParentFolderId $projectFolderId
@@ -322,13 +323,7 @@ foreach ($entry in @(
 }
 $sourceId = $lakehouseIds["source"]; $landingId = $lakehouseIds["landing"]; $bronzeId = $lakehouseIds["bronze"]; $silverId = $lakehouseIds["silver"]; $goldId = $lakehouseIds["gold"]
 
-# 3a. Rewrite main notebooks (inject parameter cells + cfg() calls)
-Write-Host "`n[3.5/8] Rewriting main notebooks with enterprise config..." -ForegroundColor Yellow
-$rewriteScript = Join-Path $PSScriptRoot "rewrite_notebooks.py"
-python $rewriteScript
-if ($LASTEXITCODE -ne 0) { throw "rewrite_notebooks.py failed" }
-
-# 3b. Convert notebooks (plain .py → Fabric format, output to build/)
+# 3a. Convert notebooks (plain .py → Fabric format, output to build/)
 $buildDir = Join-Path (Join-Path $PSScriptRoot "build") "notebooks"
 Write-Host "`n[4/8] Converting notebooks with lakehouse bindings..." -ForegroundColor Yellow
 $convertScript = Join-Path $PSScriptRoot "convert_notebooks.py"
@@ -416,5 +411,5 @@ Write-Host "    experiments/     (MLflow experiments)"
 Write-Host "    notebooks/"
 Write-Host "      main/          (23 notebooks)"
 Write-Host "      modules/       (14 modules)"
-Write-Host "    pipelines/       (3 data pipelines)"
-Write-Host "    semantic_models/ (IBP Forecast Model)"
+Write-Host "    pipelines/       (6 data pipelines)"
+Write-Host "    semantic_models/ (created by notebook 15 at runtime)"

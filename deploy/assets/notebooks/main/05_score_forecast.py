@@ -1,5 +1,6 @@
 # Fabric Notebook
-# 05_score_forecast.py
+# 05_score_forecast.py -- Forward forecasting with all trained models
+# Phase 1: Core Capability
 
 # @parameters
 silver_lakehouse_id = ""
@@ -19,69 +20,81 @@ grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")
 forecast_horizon = cfg("forecast_horizon")
 experiment_name = cfg("experiment_name")
+sarima_order = tuple(cfg("sarima_order"))
+sarima_seasonal_order = tuple(cfg("sarima_seasonal_order"))
+ets_trend = cfg("exp_smoothing_trend") or "add"
+ets_seasonal = cfg("exp_smoothing_seasonal") or "add"
+ets_seasonal_periods = int(cfg("exp_smoothing_seasonal_periods") or 12)
+prophet_yearly = str(cfg("prophet_yearly_seasonality") or "true").lower() == "true"
+prophet_weekly = str(cfg("prophet_weekly_seasonality") or "false").lower() == "true"
+prophet_cp = float(cfg("prophet_changepoint_prior") or 0.05)
+var_maxlags = int(cfg("var_maxlags") or 12)
+var_ic = cfg("var_ic") or "aic"
+
+if not silver_lakehouse_id or not gold_lakehouse_id:
+    raise ValueError("silver_lakehouse_id and gold_lakehouse_id are required.")
 
 print("[score] Loading feature table from silver.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
 print(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
-print(f"[score] Loading trained models from MLflow experiment: {experiment_name}")
 
 all_forecasts = []
 
-print("[score] Forecasting with SARIMA (MLflow models)...")
+# SARIMA
+print("[score] Forecasting with SARIMA...")
 try:
     sarima_fc = forecast_sarima_forward(pdf, date_column, grain_columns, target_column,
-                                        forecast_horizon, tuple(cfg("sarima_order")),
-                                        tuple(cfg("sarima_seasonal_order")),
+                                        forecast_horizon, sarima_order, sarima_seasonal_order,
                                         experiment_name=experiment_name)
     if not sarima_fc.empty:
         all_forecasts.append(sarima_fc)
-        print(f"  SARIMA: {len(sarima_fc)} rows")
+        print(f"[score] SARIMA: {len(sarima_fc)} forecast rows")
 except Exception as e:
-    print(f"  SARIMA failed: {e}")
+    print(f"[score] SARIMA failed: {e}")
 
-print("[score] Forecasting with Prophet (MLflow models)...")
+# Prophet
+print("[score] Forecasting with Prophet...")
 try:
     prophet_fc = forecast_prophet_forward(pdf, date_column, grain_columns, target_column,
-                                          forecast_horizon, cfg("prophet_yearly_seasonality"),
-                                          cfg("prophet_weekly_seasonality"),
-                                          cfg("prophet_changepoint_prior"),
+                                          forecast_horizon, prophet_yearly, prophet_weekly, prophet_cp,
                                           experiment_name=experiment_name)
     if not prophet_fc.empty:
         all_forecasts.append(prophet_fc)
-        print(f"  Prophet: {len(prophet_fc)} rows")
+        print(f"[score] Prophet: {len(prophet_fc)} forecast rows")
 except Exception as e:
-    print(f"  Prophet failed: {e}")
+    print(f"[score] Prophet failed: {e}")
 
-print("[score] Forecasting with VAR (MLflow models)...")
+# VAR
+print("[score] Forecasting with VAR...")
 try:
     var_fc = forecast_var_forward(pdf, date_column, grain_columns, target_column,
-                                  feature_columns, forecast_horizon,
-                                  cfg("var_maxlags"), cfg("var_ic"),
-                                  experiment_name=experiment_name)
+                                  feature_columns, forecast_horizon, var_maxlags, var_ic)
     if not var_fc.empty:
         all_forecasts.append(var_fc)
-        print(f"  VAR: {len(var_fc)} rows")
+        print(f"[score] VAR: {len(var_fc)} forecast rows")
 except Exception as e:
-    print(f"  VAR failed: {e}")
+    print(f"[score] VAR failed: {e}")
 
-print("[score] Forecasting with Exp Smoothing (MLflow models)...")
+# Exponential Smoothing
+print("[score] Forecasting with Exp Smoothing...")
 try:
     ets_fc = forecast_ets_forward(pdf, date_column, grain_columns, target_column,
-                                   forecast_horizon, cfg("exp_smoothing_trend"),
-                                   cfg("exp_smoothing_seasonal"),
-                                   cfg("exp_smoothing_seasonal_periods"),
+                                   forecast_horizon, ets_trend, ets_seasonal, ets_seasonal_periods,
                                    experiment_name=experiment_name)
     if not ets_fc.empty:
         all_forecasts.append(ets_fc)
-        print(f"  Exp Smoothing: {len(ets_fc)} rows")
+        print(f"[score] Exp Smoothing: {len(ets_fc)} forecast rows")
 except Exception as e:
-    print(f"  Exp Smoothing failed: {e}")
+    print(f"[score] Exp Smoothing failed: {e}")
 
+# Combine and write raw forecasts to silver (pre-versioning)
 if all_forecasts:
     combined = pd.concat(all_forecasts, ignore_index=True)
-    write_lakehouse_table(spark.createDataFrame(combined), silver_lakehouse_id, "raw_forecasts", mode="overwrite")
-    print(f"[score] Wrote {len(combined)} raw forecast rows")
+    combined_spark = spark.createDataFrame(combined)
+    write_lakehouse_table(combined_spark, silver_lakehouse_id, "raw_forecasts", mode="overwrite")
+    print(f"[score] Wrote {len(combined)} raw forecast rows to silver.raw_forecasts")
 else:
     print("[score] WARNING: No forecasts produced.")
+
 print("[score] Complete.")

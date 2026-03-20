@@ -30,8 +30,10 @@ LAKEHOUSE_MAP = {
     "10_consensus_build":    "gold",
     "11_accuracy_tracking":  "gold",
     "12_aggregate_gold":     "gold",
-    "13_budget_comparison":  "gold",
-    "P2_":                   "gold",
+    "13_budget_comparison":        "gold",
+    "14_build_reporting_view":     "gold",
+    "15_refresh_semantic_model":   "gold",
+    "P2_":                         "gold",
 }
 
 

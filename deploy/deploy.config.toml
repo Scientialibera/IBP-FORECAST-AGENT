@@ -157,6 +157,12 @@ xyz_cv_threshold_y    = 1.0
 runner_threshold      = 0.8
 repeater_threshold    = 0.95
 
+# ── Semantic Model ────────────────────────────────────────────────
+
+[semantic_model]
+name = "IBP Forecast Model"
+reporting_table = "reporting_actuals_vs_forecast"
+
 # ── Test Data Generation ─────────────────────────────────────────
 
 [test_data]
