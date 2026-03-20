@@ -4,6 +4,7 @@
 # @parameters
 gold_lakehouse_id = ""
 bronze_lakehouse_id = ""
+silver_lakehouse_id = ""
 # @end_parameters
 
 # %run ../modules/ibp_config
@@ -85,4 +86,37 @@ future_count = reporting["is_future"].sum()
 historical_count = (~reporting["is_future"]).sum()
 logger.info(f"  Historical (actual+forecast): {historical_count}")
 logger.info(f"  Future (forecast only):       {future_count}")
+
+# ── Union backtest predictions from silver into gold ─────────────
+logger.info("[reporting] Building backtest_predictions from silver prediction tables...")
+prediction_tables = ["sarima_predictions", "prophet_predictions", "var_predictions", "exp_smoothing_predictions"]
+backtest_frames = []
+for tbl in prediction_tables:
+    try:
+        df = read_lakehouse_table(spark, silver_lakehouse_id, tbl).toPandas()
+        if not df.empty:
+            backtest_frames.append(df)
+            logger.info(f"  {tbl}: {len(df)} rows")
+    except Exception as e:
+        logger.warning(f"  {tbl}: not found or empty -- {e}")
+
+if backtest_frames:
+    backtest = pd.concat(backtest_frames, ignore_index=True)
+    # Normalize period to string for consistency
+    if "period" not in backtest.columns and "period_date" in backtest.columns:
+        backtest["period"] = backtest["period_date"]
+    backtest["period"] = pd.to_datetime(backtest["period"], format="mixed").dt.strftime("%Y-%m-%d")
+    backtest["error"] = backtest["predicted"] - backtest["actual"]
+    backtest["abs_error"] = backtest["error"].abs()
+    backtest["pct_error"] = (backtest["abs_error"] / backtest["actual"].replace(0, np.nan))
+    write_lakehouse_table(
+        spark.createDataFrame(backtest), gold_lakehouse_id, "backtest_predictions", mode="overwrite"
+    )
+    logger.info(f"[reporting] Wrote {len(backtest)} backtest rows to gold.backtest_predictions")
+    for mt, grp in backtest.groupby("model_type"):
+        mape = grp["pct_error"].mean() * 100
+        logger.info(f"  {mt}: {len(grp)} rows, MAPE={mape:.1f}%")
+else:
+    logger.warning("[reporting] No backtest prediction tables found in silver.")
+
 logger.info("[reporting] Complete.")

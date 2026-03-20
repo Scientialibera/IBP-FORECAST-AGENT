@@ -131,6 +131,27 @@ bim = {
                 "partitions": [{"name": "capacity_translation", "mode": "directLake",
                     "source": {"type": "entity", "entityName": "capacity_translation", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
             },
+            {
+                "name": "Backtest Predictions",
+                "columns": [
+                    {"name": "plant_id",    "dataType": "string", "sourceColumn": "plant_id",    "summarizeBy": "none"},
+                    {"name": "sku_id",      "dataType": "string", "sourceColumn": "sku_id",      "summarizeBy": "none"},
+                    {"name": "period",      "dataType": "string", "sourceColumn": "period",      "summarizeBy": "none"},
+                    {"name": "actual",      "dataType": "double", "sourceColumn": "actual",      "summarizeBy": "sum"},
+                    {"name": "predicted",   "dataType": "double", "sourceColumn": "predicted",   "summarizeBy": "sum"},
+                    {"name": "model_type",  "dataType": "string", "sourceColumn": "model_type",  "summarizeBy": "none"},
+                    {"name": "error",       "dataType": "double", "sourceColumn": "error",       "summarizeBy": "sum"},
+                    {"name": "abs_error",   "dataType": "double", "sourceColumn": "abs_error",   "summarizeBy": "sum"},
+                    {"name": "pct_error",   "dataType": "double", "sourceColumn": "pct_error",   "summarizeBy": "none"},
+                ],
+                "measures": [
+                    {"name": "Backtest MAPE %", "expression": "DIVIDE(SUM('Backtest Predictions'[abs_error]),SUM('Backtest Predictions'[actual]),BLANK())*100", "formatString": "0.0"},
+                    {"name": "Total Actual",    "expression": "SUM('Backtest Predictions'[actual])",    "formatString": "#,0.0"},
+                    {"name": "Total Predicted", "expression": "SUM('Backtest Predictions'[predicted])", "formatString": "#,0.0"},
+                ],
+                "partitions": [{"name": "backtest_predictions", "mode": "directLake",
+                    "source": {"type": "entity", "entityName": "backtest_predictions", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
         ],
         "relationships": [
             {"name": "FK_FV_SKU",          "fromTable": "Forecast Versions",             "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
@@ -139,6 +160,8 @@ bim = {
             {"name": "FK_Reporting_Plant", "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
             {"name": "FK_Capacity_SKU",    "fromTable": "Capacity Translation",          "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
             {"name": "FK_Capacity_Plant",  "fromTable": "Capacity Translation",          "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+            {"name": "FK_Backtest_SKU",    "fromTable": "Backtest Predictions",           "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_Backtest_Plant",  "fromTable": "Backtest Predictions",           "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
         ],
         "expressions": [
             {

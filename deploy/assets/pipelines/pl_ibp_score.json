@@ -311,6 +311,10 @@
             "bronze_lakehouse_id": {
               "value": "@pipeline().parameters.bronze_lakehouse_id",
               "type": "string"
+            },
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
             }
           }
         }

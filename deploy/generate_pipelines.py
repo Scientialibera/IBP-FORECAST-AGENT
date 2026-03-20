@@ -192,6 +192,7 @@ score_acts = [
     nb_activity("14_build_reporting_view", "14_build_reporting_view", {
         "gold_lakehouse_id":   P("gold_lakehouse_id"),
         "bronze_lakehouse_id": P("bronze_lakehouse_id"),
+        "silver_lakehouse_id": P("silver_lakehouse_id"),
     }, depends_on=["11_accuracy_tracking", "12_aggregate_gold", "13_budget_comparison"]),
 ]
 
