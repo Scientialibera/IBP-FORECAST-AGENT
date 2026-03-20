@@ -383,11 +383,26 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 | `adjustments_table` | `"market_adjustments"` | Source table for market adjustments |
 | `default_scale_factor` | `1.0` | Default market adjustment multiplier |
 
+### Tables: Intermediate / Pipeline
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `feature_table` | `"feature_table"` | Silver table produced by feature engineering |
+| `raw_forecasts_table` | `"raw_forecasts"` | Silver table holding combined raw model forecasts |
+| `primary_table` | `"orders"` | Primary demand table used for actuals comparison |
+| `prediction_tables` | `["sarima_predictions", "prophet_predictions", "var_predictions", "exp_smoothing_predictions"]` | Per-model prediction tables in silver (order matters -- index maps to each model) |
+| `backtest_predictions_table` | `"backtest_predictions"` | Gold table with unioned backtest predictions from all models |
+| `dimension_tables` | `["master_sku", "master_plant"]` | Dimension tables copied from bronze to gold for reporting joins |
+| `model_recommendations_table` | `"model_recommendations"` | Gold table with recommended model per grain based on accuracy |
+| `agg_grand_total_table` | `"agg_grand_total"` | Gold table with grand-total aggregation across all grains |
+| `version_types` | `["system", "sales", "consensus"]` | Version types to aggregate in gold roll-ups |
+
 ### Accuracy Tracking
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `accuracy_table` | `"accuracy_tracking"` | Output table for accuracy metrics |
+| `accuracy_recommendation_metric` | `"mape"` | Metric used to rank models for per-grain recommendations (mape, rmse, mae) |
 
 ### Hierarchy / Aggregation
 
@@ -404,28 +419,51 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 | `over_forecast_threshold` | `0.10` | Flag threshold for over-forecasting (10%) |
 | `under_forecast_threshold` | `-0.10` | Flag threshold for under-forecasting (-10%) |
 
+### Feature Engineering
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `lag_periods` | `[1, 2, 3, 6, 12]` | Lag periods (in months) used for lag features |
+| `rolling_windows` | `[3, 6, 12]` | Window sizes (in months) for rolling mean/std features |
+
 ### Phase 2: External Signals
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `external_signals_enabled` | `False` | Master switch -- skip external signals processing when disabled |
 | `signal_columns` | `["construction_index", "interest_rate", "inflation_rate", "tariff_rate"]` | External signal columns |
-| `signals_table` | `"external_signals"` | Source table |
+| `signals_table` | `"external_signals"` | Source table for external signals |
+| `signal_importance_table` | `"signal_importance"` | Output table for signal feature-importance scores |
+| `feature_table_enriched` | `"feature_table_enriched"` | Output table for feature table enriched with external signals |
 
 ### Phase 2: Scenario Modeling
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `scenarios_enabled` | `False` | Master switch -- skip scenario modeling when disabled |
 | `scenarios_table` | `"scenario_definitions"` | Source table with volume/price multipliers |
+| `scenario_comparison_table` | `"scenario_comparison"` | Output table with side-by-side scenario results |
 
 ### Phase 2: SKU Classification
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `sku_classification_enabled` | `False` | Master switch -- skip SKU classification when disabled |
 | `sku_classification_output_table` | `"sku_classifications"` | Output table |
 | `runner_threshold` | `0.8` | Frequency threshold for Runner class |
 | `repeater_threshold` | `0.95` | Frequency threshold for Repeater class |
 | `xyz_cv_threshold_x` | `0.5` | CV threshold for X class (low variability) |
 | `xyz_cv_threshold_y` | `1.0` | CV threshold for Y class (medium variability) |
+
+### Phase 2: Inventory Alignment
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `inventory_table` | `"inventory_finished_goods"` | Source table for finished-goods inventory |
+| `inventory_alignment_table` | `"inventory_alignment"` | Output table with inventory vs. demand alignment |
+| `inventory_near_term_months` | `3` | Months of forward demand to use for near-term coverage |
+| `inventory_stockout_threshold_months` | `1` | Coverage below this (in months) flags stock-out risk |
+| `inventory_overbuild_threshold_months` | `6` | Coverage above this (in months) flags overbuild risk |
 
 ### Semantic Model / Reporting
 
@@ -433,9 +471,23 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `reporting_table` | `"reporting_actuals_vs_forecast"` | Unified reporting table in gold |
 | `semantic_model_name` | `"IBP Forecast Model"` | Name of the DirectLake semantic model |
-| `refresh_schedule_enabled` | `true` | Enable daily scheduled refresh for the semantic model |
+| `semantic_models_folder` | `"semantic_models"` | Fabric workspace folder for semantic models |
+| `reports_folder` | `"reports"` | Fabric workspace folder for Power BI reports |
+| `report_name` | `"IBP Backtest - Actual vs Predicted"` | Display name of the Power BI report |
+| `report_description` | `"Generated PBIR-Legacy report..."` | Description metadata for the Power BI report |
+| `refresh_schedule_enabled` | `True` | Enable daily scheduled refresh for the semantic model |
 | `refresh_schedule_time` | `"06:00"` | Time of day for scheduled refresh (24h format) |
 | `refresh_schedule_timezone` | `"UTC"` | Timezone for the refresh schedule |
+
+### Lakehouse Names
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `lakehouse_names.source` | `"lh_ibp_source"` | Display name of the source lakehouse (used by `resolve_lakehouse_id`) |
+| `lakehouse_names.landing` | `"lh_ibp_landing"` | Display name of the landing lakehouse |
+| `lakehouse_names.bronze` | `"lh_ibp_bronze"` | Display name of the bronze lakehouse |
+| `lakehouse_names.silver` | `"lh_ibp_silver"` | Display name of the silver lakehouse |
+| `lakehouse_names.gold` | `"lh_ibp_gold"` | Display name of the gold lakehouse |
 
 ### Test Data Generation
 
