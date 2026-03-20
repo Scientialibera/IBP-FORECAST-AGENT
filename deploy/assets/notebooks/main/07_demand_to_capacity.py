@@ -13,6 +13,10 @@ bronze_lakehouse_id = ""
 # %run ../modules/versioning_module
 # %run ../modules/capacity_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 forecast_table = cfg("output_table")
 capacity_output_table = cfg("capacity_output_table")
 production_table = cfg("production_history_table")

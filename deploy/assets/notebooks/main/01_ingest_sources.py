@@ -10,12 +10,12 @@ landing_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
+landing_lakehouse_id = resolve_lakehouse_id(landing_lakehouse_id, "landing")
+
 source_tables = cfg("source_tables")
 
-if not source_lakehouse_id:
-    raise ValueError("source_lakehouse_id is required.")
-if not landing_lakehouse_id:
-    raise ValueError("landing_lakehouse_id is required.")
 if not source_tables:
     raise ValueError("source_tables list is empty.")
 

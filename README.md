@@ -246,7 +246,7 @@ Typical workflow:
 
 Notebook `15_refresh_semantic_model` creates or updates a DirectLake semantic model over the gold lakehouse via the Fabric REST API, then triggers a full refresh. It is **not** created at infrastructure deployment -- only the `semantic_models/` folder is created by the deploy script. The model itself is created/updated by the notebook when triggered by the `pl_ibp_refresh_model` pipeline.
 
-The deploy script also configures a **scheduled refresh** for the semantic model (default: daily at 06:00 UTC). This is controlled via `deploy.config.toml` under `[semantic_model]`.
+Notebook 15 also configures a **scheduled refresh** for the semantic model (default: daily at 06:00 UTC). This is controlled via `ibp_config.py` under `refresh_schedule_*` keys.
 
 **Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Master SKU, Master Plant, Capacity Translation
 
@@ -283,7 +283,7 @@ The report is bound to the semantic model and has two pages:
 
 To update the layout: redesign in Power BI service, extract via `getDefinition` API, and replace the embedded JSON in the notebook.
 
-The report is idempotent -- first run creates, subsequent runs update the definition in place.
+The report is create-only -- if the report already exists in the workspace, the notebook skips the definition update to preserve any manual edits made in the Power BI service. Delete the report from Fabric to force re-creation from the embedded definition.
 
 ## Configuration Reference
 
@@ -484,17 +484,21 @@ Notebooks receive two kinds of configuration:
 
 2. **Everything else** -- centralized in `ibp_config.py` via the `cfg("key")` function. Model hyperparameters, table names, thresholds, column mappings -- all in one place. Change once, applies everywhere.
 
+### Automatic parameter resolution (manual runs)
+
+Every notebook calls `resolve_lakehouse_id()` after the module imports. When a pipeline injects the ID, the value passes through unchanged. When you run a notebook **manually** (no pipeline), the parameter is an empty string, so the resolver discovers the lakehouse by name via the Fabric API using the `lakehouse_names` mapping in `ibp_config.py`. This means notebooks work both ways — via pipeline or standalone.
+
 ```python
 # In a notebook:
 # @parameters
-silver_lakehouse_id = ""        # ← injected by pipeline at runtime
+silver_lakehouse_id = ""        # ← empty default; pipeline injects real ID
 # @end_parameters
 
-# %run ../modules/ibp_config    # ← provides cfg()
-# %run ../modules/config_module # ← provides read_lakehouse_table, write_lakehouse_table
+# %run ../modules/ibp_config    # ← provides cfg(), logger
+# %run ../modules/config_module # ← provides resolve_lakehouse_id, read/write helpers
 
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")  # ← auto-discovers if empty
 target_column = cfg("target_column")  # ← centralized config
-grain_columns = cfg("grain_columns")  # ← returns native Python list
 ```
 
 ### Adding or editing notebooks
@@ -519,7 +523,7 @@ Never edit files in `build/` directly -- they are overwritten on every deploymen
 pwsh ./deploy/deploy-fabric.ps1
 ```
 
-The script performs 9 idempotent steps:
+The script performs 8 idempotent steps:
 
 | Step | Description |
 |------|-------------|
@@ -531,7 +535,6 @@ The script performs 9 idempotent steps:
 | 6 | Deploy main notebooks in parallel |
 | 7 | Run `generate_pipelines.py` to produce pipeline JSON definitions |
 | 8 | Deploy 6 data pipelines into `pipelines/` folder |
-| 9 | Configure semantic model scheduled refresh (daily at configured time) |
 
 Safe to re-run -- existing items are updated, not duplicated.
 

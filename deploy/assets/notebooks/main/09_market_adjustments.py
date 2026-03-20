@@ -13,13 +13,15 @@ bronze_lakehouse_id = ""
 # %run ../modules/versioning_module
 # %run ../modules/override_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 forecast_table = cfg("output_table")
 adjustments_table = cfg("adjustments_table")
 default_scale_factor = float(cfg("default_scale_factor"))
 grain_columns = cfg("grain_columns")
 
-if not gold_lakehouse_id:
-    raise ValueError("gold_lakehouse_id is required.")
 
 # Get latest sales version (or system if no sales version)
 logger.info("[market_adj] Loading latest sales or system forecast.")

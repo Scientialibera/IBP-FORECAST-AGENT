@@ -434,45 +434,6 @@ if (Test-Path $pipelinesDir) {
     Write-Host "  No pipelines directory found, skipping."
 }
 
-# ── Semantic Model Refresh Schedule ──────────────────────────────
-$smRefreshEnabled  = $config.semantic_model.refresh_schedule_enabled
-$smRefreshTime     = $config.semantic_model.refresh_schedule_time
-$smRefreshTimezone = $config.semantic_model.refresh_schedule_timezone
-$smName            = $config.semantic_model.name
-
-if ($smRefreshEnabled -and $smRefreshTime) {
-    Write-Host "`n[9/9] Configuring semantic model refresh schedule..." -ForegroundColor Yellow
-    try {
-        $pbiToken = (az account get-access-token --resource https://analysis.windows.net/powerbi/api --query accessToken -o tsv)
-        $pbiHeaders = @{ Authorization = "Bearer $pbiToken"; "Content-Type" = "application/json" }
-
-        $allSm = Invoke-RestMethod -Uri "https://api.powerbi.com/v1.0/myorg/groups/$workspaceId/datasets" -Method GET -Headers $pbiHeaders
-        $smMatch = $allSm.value | Where-Object { $_.name -eq $smName } | Select-Object -First 1
-
-        if ($smMatch) {
-            $scheduleBody = @{
-                value = @{
-                    enabled           = $true
-                    days              = @("Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday")
-                    times             = @($smRefreshTime)
-                    localTimeZoneId   = if ($smRefreshTimezone) { $smRefreshTimezone } else { "UTC" }
-                    notifyOption      = "MailOnFailure"
-                }
-            } | ConvertTo-Json -Depth 5
-
-            Invoke-WebRequest -Uri "https://api.powerbi.com/v1.0/myorg/groups/$workspaceId/datasets/$($smMatch.id)/refreshSchedule" `
-                -Method PATCH -Headers $pbiHeaders -Body $scheduleBody -UseBasicParsing | Out-Null
-            Write-Host "  Refresh schedule: daily at $smRefreshTime ($smRefreshTimezone)" -ForegroundColor Green
-        } else {
-            Write-Host "  Semantic model '$smName' not found yet -- schedule will be set on next deploy after notebook 15 runs" -ForegroundColor DarkYellow
-        }
-    } catch {
-        Write-Warning "  Failed to set refresh schedule: $_"
-    }
-} else {
-    Write-Host "`n[9/9] Semantic model refresh schedule -- disabled in config" -ForegroundColor DarkGray
-}
-
 # ── Summary ─────────────────────────────────────────────────────
 Write-Host "`n=== Deployment Complete ===" -ForegroundColor Green
 Write-Host "`nLakehouse IDs:" -ForegroundColor Cyan

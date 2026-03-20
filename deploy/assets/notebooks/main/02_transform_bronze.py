@@ -10,14 +10,14 @@ bronze_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+landing_lakehouse_id = resolve_lakehouse_id(landing_lakehouse_id, "landing")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 from pyspark.sql import functions as F
 
 source_tables = cfg("source_tables")
 
-if not landing_lakehouse_id:
-    raise ValueError("landing_lakehouse_id is required.")
-if not bronze_lakehouse_id:
-    raise ValueError("bronze_lakehouse_id is required.")
 
 for table_name in source_tables:
     logger.info(f"\n[transform] Cleaning: {table_name}")

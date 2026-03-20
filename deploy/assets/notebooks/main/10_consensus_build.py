@@ -12,11 +12,12 @@ gold_lakehouse_id = ""
 # %run ../modules/versioning_module
 # %run ../modules/override_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+
 forecast_table = cfg("output_table")
 grain_columns = cfg("grain_columns")
 
-if not gold_lakehouse_id:
-    raise ValueError("gold_lakehouse_id is required.")
 
 logger.info("[consensus] Loading all forecast layers.")
 all_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)

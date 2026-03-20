@@ -11,6 +11,10 @@ gold_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/versioning_module
 
+
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+
 import hashlib
 import pandas as pd
 

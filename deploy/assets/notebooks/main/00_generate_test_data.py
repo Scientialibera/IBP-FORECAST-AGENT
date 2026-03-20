@@ -9,12 +9,13 @@ source_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
+
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 
-if not source_lakehouse_id:
-    raise ValueError("source_lakehouse_id is required. Set it in notebook parameters.")
 
 # ── Config ──────────────────────────────────────────────────────
 N_SKUS = int(cfg("n_skus") or 50)

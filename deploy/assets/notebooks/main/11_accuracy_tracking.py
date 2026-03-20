@@ -13,6 +13,10 @@ bronze_lakehouse_id = ""
 # %run ../modules/feature_engineering_module
 # %run ../modules/accuracy_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 forecast_table = cfg("output_table")
 accuracy_table = cfg("accuracy_table")
 target_column = cfg("target_column")

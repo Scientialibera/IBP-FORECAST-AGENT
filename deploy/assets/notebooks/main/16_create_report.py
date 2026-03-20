@@ -28,6 +28,9 @@ gold_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+
 import base64
 import json
 import time
@@ -1274,7 +1277,7 @@ def wait_for_lro(resp: requests.Response, headers: dict):
             if poll.status_code == 200:
                 body = poll.json()
                 status = body.get("status")
-                print(f"[report] LRO status: {status}")
+                logger.info("LRO status: %s", status)
                 if status in ("Succeeded", "Completed"):
                     result = requests.get(
                         f"https://api.fabric.microsoft.com/v1/operations/{op_id}/result",
@@ -1294,7 +1297,7 @@ def wait_for_lro(resp: requests.Response, headers: dict):
             if poll.status_code == 200:
                 body = poll.json()
                 status = body.get("status")
-                print(f"[report] LRO status: {status}")
+                logger.info("LRO status: %s", status)
                 if status in ("Succeeded", "Completed"):
                     return body
                 if status == "Failed":
@@ -1312,7 +1315,7 @@ ws_resp = requests.get(
 )
 ws_resp.raise_for_status()
 workspace_name = ws_resp.json()["displayName"]
-print(f"[report] Workspace: {workspace_name} ({workspace_id})")
+logger.info("Workspace: %s (%s)", workspace_name, workspace_id)
 
 sm_resp = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=SemanticModel",
@@ -1323,7 +1326,7 @@ sm_match = [m for m in sm_resp.json().get("value", []) if m["displayName"] == SE
 if not sm_match:
     raise Exception(f"Semantic model '{SEMANTIC_MODEL_NAME}' not found. Run notebook 15 first.")
 semantic_model_id = sm_match[0]["id"]
-print(f"[report] Semantic model: {semantic_model_id}")
+logger.info("Semantic model: %s", semantic_model_id)
 
 # ---------------------------------------------------------------------------
 # Resolve optional reports folder
@@ -1338,7 +1341,7 @@ if folders_resp.status_code == 200:
         if f["displayName"] == "reports":
             reports_folder_id = f["id"]
             break
-print(f"[report] Reports folder: {reports_folder_id or 'workspace root'}")
+logger.info("Reports folder: %s", reports_folder_id or "workspace root")
 
 # ---------------------------------------------------------------------------
 # Patch extracted files for current environment
@@ -1401,17 +1404,9 @@ report_id = None
 
 if existing:
     report_id = existing[0]["id"]
-    print(f"[report] Report exists ({report_id}), updating definition...")
-
-    resp = requests.post(
-        f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/reports/{report_id}/updateDefinition",
-        headers=headers,
-        json={"definition": definition},
-    )
-    wait_for_lro(resp, headers)
-    print("[report] Definition updated.")
+    logger.info("Report already exists (%s) — skipping definition update to preserve manual edits.", report_id)
 else:
-    print("[report] Creating new report...")
+    logger.info("Creating new report...")
     body = {
         "displayName": REPORT_NAME,
         "description": REPORT_DESCRIPTION,
@@ -1441,10 +1436,10 @@ else:
         if match:
             report_id = match[0]["id"]
 
-    print(f"[report] Created: {report_id}")
+    logger.info("Created: %s", report_id)
 
 if not report_id:
     raise Exception("Report ID could not be resolved after create/update.")
 
-print(f"[report] URL: https://app.fabric.microsoft.com/groups/{workspace_id}/reports/{report_id}")
-print("[report] Complete.")
+logger.info("URL: https://app.fabric.microsoft.com/groups/%s/reports/%s", workspace_id, report_id)
+logger.info("Complete.")

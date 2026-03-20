@@ -10,6 +10,9 @@ gold_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+
 import json, requests, base64, time
 
 semantic_model_name = cfg("semantic_model_name")
@@ -265,5 +268,36 @@ if sm_final:
     else:
         logger.error(f"[semantic] Refresh failed: {refresh_resp.status_code} -- {refresh_resp.text}")
         raise Exception(f"Refresh failed: {refresh_resp.status_code}")
+
+# ── Configure scheduled refresh ─────────────────────────────────
+schedule_enabled  = cfg("refresh_schedule_enabled")
+schedule_time     = cfg("refresh_schedule_time")
+schedule_timezone = cfg("refresh_schedule_timezone")
+
+if schedule_enabled and schedule_time and sm_final:
+    try:
+        pbi_headers = {"Authorization": f"Bearer {pbi_token}", "Content-Type": "application/json"}
+        schedule_body = {
+            "value": {
+                "enabled": True,
+                "days": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+                "times": [schedule_time],
+                "localTimeZoneId": schedule_timezone or "UTC",
+                "notifyOption": "MailOnFailure",
+            }
+        }
+        sched_resp = requests.patch(
+            f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{sm_id}/refreshSchedule",
+            headers=pbi_headers,
+            json=schedule_body,
+        )
+        if sched_resp.status_code == 200:
+            logger.info("[semantic] Refresh schedule set: daily at %s %s", schedule_time, schedule_timezone or "UTC")
+        else:
+            logger.warning("[semantic] Failed to set schedule: %s -- %s", sched_resp.status_code, sched_resp.text)
+    except Exception as e:
+        logger.warning("[semantic] Schedule configuration failed: %s", e)
+else:
+    logger.info("[semantic] Scheduled refresh not configured (disabled or no model)")
 
 logger.info("[semantic] Complete.")

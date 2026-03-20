@@ -13,12 +13,14 @@ bronze_lakehouse_id = ""
 # %run ../modules/versioning_module
 # %run ../modules/override_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 forecast_table = cfg("output_table")
 overrides_table = cfg("overrides_table")
 grain_columns = cfg("grain_columns")
 
-if not gold_lakehouse_id:
-    raise ValueError("gold_lakehouse_id is required.")
 
 logger.info("[overrides] Loading latest system forecast.")
 system_pdf = get_latest_system_version(spark, gold_lakehouse_id, forecast_table)

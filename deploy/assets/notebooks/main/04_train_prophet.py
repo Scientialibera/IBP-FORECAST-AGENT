@@ -11,6 +11,9 @@ silver_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/train_prophet_module
 
+
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
@@ -22,8 +25,6 @@ experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
 
-if not silver_lakehouse_id:
-    raise ValueError("silver_lakehouse_id is required.")
 
 logger.info("[prophet] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")

@@ -9,13 +9,14 @@ gold_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+
 from pyspark.sql import functions as F
 
 forecast_table = cfg("output_table")
 hierarchy_levels = cfg("hierarchy_levels")
 
-if not gold_lakehouse_id:
-    raise ValueError("gold_lakehouse_id is required.")
 
 logger.info("[aggregate] Loading forecast versions from gold.")
 forecast_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)

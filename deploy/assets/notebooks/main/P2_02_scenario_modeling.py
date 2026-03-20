@@ -12,6 +12,10 @@ bronze_lakehouse_id = ""
 # %run ../modules/utils_module
 # %run ../modules/versioning_module
 
+
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+
 import pandas as pd
 from pyspark.sql import functions as F
 

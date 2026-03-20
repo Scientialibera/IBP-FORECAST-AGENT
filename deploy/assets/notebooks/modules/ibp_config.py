@@ -104,6 +104,18 @@ IBP_CONFIG = {
     # ── Semantic Model / Reporting ─────────────────────────────────
     "reporting_table":      "reporting_actuals_vs_forecast",
     "semantic_model_name":  "IBP Forecast Model",
+    "refresh_schedule_enabled": True,
+    "refresh_schedule_time":    "06:00",
+    "refresh_schedule_timezone": "UTC",
+
+    # ── Lakehouse Names (used by resolve_lakehouse_id for manual runs) ──
+    "lakehouse_names": {
+        "source":  "lh_ibp_source",
+        "landing": "lh_ibp_landing",
+        "bronze":  "lh_ibp_bronze",
+        "silver":  "lh_ibp_silver",
+        "gold":    "lh_ibp_gold",
+    },
 
     # ── Test Data Generation ─────────────────────────────────────
     "n_skus":               50,
