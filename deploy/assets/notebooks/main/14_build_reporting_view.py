@@ -24,9 +24,10 @@ forecast_table = cfg("output_table")
 reporting_table = cfg("reporting_table")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
+primary_table = cfg("primary_table")
 
 logger.info("[reporting] Copying dimension tables (master_sku, master_plant) to gold for semantic model...")
-for dim_table in ["master_sku", "master_plant"]:
+for dim_table in cfg("dimension_tables"):
     try:
         dim_df = read_lakehouse_table(spark, bronze_lakehouse_id, dim_table)
         write_lakehouse_table(dim_df, gold_lakehouse_id, dim_table, mode="overwrite")
@@ -39,8 +40,8 @@ logger.info("[reporting] Building unified actuals-vs-forecast reporting view.")
 fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
 logger.info(f"[reporting] Forecast versions: {len(fc_df)} rows")
 
-actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders").toPandas()
-logger.info(f"[reporting] Actuals (orders): {len(actuals_df)} rows")
+actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table).toPandas()
+logger.info(f"[reporting] Actuals ({primary_table}): {len(actuals_df)} rows")
 
 if "period_date" in actuals_df.columns and "period" not in actuals_df.columns:
     actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period("M").astype(str)
@@ -93,8 +94,9 @@ logger.info(f"  Historical (actual+forecast): {historical_count}")
 logger.info(f"  Future (forecast only):       {future_count}")
 
 # ── Union backtest predictions from silver into gold ─────────────
+backtest_predictions_table = cfg("backtest_predictions_table")
 logger.info("[reporting] Building backtest_predictions from silver prediction tables...")
-prediction_tables = ["sarima_predictions", "prophet_predictions", "var_predictions", "exp_smoothing_predictions"]
+prediction_tables = cfg("prediction_tables")
 backtest_frames = []
 for tbl in prediction_tables:
     try:
@@ -115,9 +117,9 @@ if backtest_frames:
     backtest["abs_error"] = backtest["error"].abs()
     backtest["pct_error"] = (backtest["abs_error"] / backtest["actual"].replace(0, np.nan))
     write_lakehouse_table(
-        spark.createDataFrame(backtest), gold_lakehouse_id, "backtest_predictions", mode="overwrite"
+        spark.createDataFrame(backtest), gold_lakehouse_id, backtest_predictions_table, mode="overwrite"
     )
-    logger.info(f"[reporting] Wrote {len(backtest)} backtest rows to gold.backtest_predictions")
+    logger.info(f"[reporting] Wrote {len(backtest)} backtest rows to gold.{backtest_predictions_table}")
     for mt, grp in backtest.groupby("model_type"):
         mape = grp["pct_error"].mean() * 100
         logger.info(f"  {mt}: {len(grp)} rows, MAPE={mape:.1f}%")

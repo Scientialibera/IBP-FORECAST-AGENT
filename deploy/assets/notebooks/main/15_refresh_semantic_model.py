@@ -37,7 +37,7 @@ folders_resp = requests.get(
 )
 sm_folder_id = None
 for f in folders_resp.json().get("value", []):
-    if f["displayName"] == "semantic_models":
+    if f["displayName"] == cfg("semantic_models_folder"):
         sm_folder_id = f["id"]
         break
 logger.info(f"[semantic] Target folder: {sm_folder_id or 'workspace root'}")

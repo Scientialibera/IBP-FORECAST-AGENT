@@ -75,8 +75,21 @@ IBP_CONFIG = {
     "adjustments_table":      "market_adjustments",
     "default_scale_factor":   1.0,
 
+    # ── Tables: Intermediate / Pipeline ───────────────────────────
+    "feature_table":            "feature_table",
+    "raw_forecasts_table":      "raw_forecasts",
+    "primary_table":            "orders",
+    "prediction_tables":        ["sarima_predictions", "prophet_predictions",
+                                 "var_predictions", "exp_smoothing_predictions"],
+    "backtest_predictions_table": "backtest_predictions",
+    "dimension_tables":         ["master_sku", "master_plant"],
+    "model_recommendations_table": "model_recommendations",
+    "agg_grand_total_table":    "agg_grand_total",
+    "version_types":            ["system", "sales", "consensus"],
+
     # ── Accuracy Tracking ────────────────────────────────────────
-    "accuracy_table":  "accuracy_tracking",
+    "accuracy_table":                   "accuracy_tracking",
+    "accuracy_recommendation_metric":   "mape",
 
     # ── Hierarchy / Aggregation ──────────────────────────────────
     "hierarchy_levels": ["market_id", "plant_id", "sku_group", "sku_id", "customer_id"],
@@ -87,19 +100,36 @@ IBP_CONFIG = {
     "over_forecast_threshold":    0.10,
     "under_forecast_threshold":  -0.10,
 
+    # ── Feature Engineering ───────────────────────────────────────
+    "lag_periods":       [1, 2, 3, 6, 12],
+    "rolling_windows":   [3, 6, 12],
+
     # ── Phase 2: External Signals ────────────────────────────────
+    "external_signals_enabled":   False,
     "signal_columns":   ["construction_index", "interest_rate", "inflation_rate", "tariff_rate"],
     "signals_table":    "external_signals",
+    "signal_importance_table":    "signal_importance",
+    "feature_table_enriched":     "feature_table_enriched",
 
     # ── Phase 2: Scenario Modeling ───────────────────────────────
-    "scenarios_table":  "scenario_definitions",
+    "scenarios_enabled":          False,
+    "scenarios_table":            "scenario_definitions",
+    "scenario_comparison_table":  "scenario_comparison",
 
     # ── Phase 2: SKU Classification ──────────────────────────────
+    "sku_classification_enabled":       False,
     "sku_classification_output_table":  "sku_classifications",
     "runner_threshold":                 0.8,
     "repeater_threshold":               0.95,
     "xyz_cv_threshold_x":               0.5,
     "xyz_cv_threshold_y":               1.0,
+
+    # ── Phase 2: Inventory Alignment ──────────────────────────────
+    "inventory_table":                       "inventory_finished_goods",
+    "inventory_alignment_table":             "inventory_alignment",
+    "inventory_near_term_months":            3,
+    "inventory_stockout_threshold_months":   1,
+    "inventory_overbuild_threshold_months":  6,
 
     # ── Semantic Model / Reporting ─────────────────────────────────
     "reporting_table":      "reporting_actuals_vs_forecast",
@@ -107,6 +137,10 @@ IBP_CONFIG = {
     "refresh_schedule_enabled": True,
     "refresh_schedule_time":    "06:00",
     "refresh_schedule_timezone": "UTC",
+    "semantic_models_folder":   "semantic_models",
+    "reports_folder":           "reports",
+    "report_name":              "IBP Backtest - Actual vs Predicted",
+    "report_description":       "Generated PBIR-Legacy report for IBP backtest analysis.",
 
     # ── Lakehouse Names (used by resolve_lakehouse_id for manual runs) ──
     "lakehouse_names": {

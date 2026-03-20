@@ -27,7 +27,7 @@ if total == 0:
     logger.info("[aggregate] No data. Exiting.")
 else:
     # Aggregate per version_type at each hierarchy level
-    for version_type in ["system", "sales", "consensus"]:
+    for version_type in cfg("version_types"):
         vtype_df = forecast_df.filter(F.col("version_type") == version_type)
         if vtype_df.count() == 0:
             continue
@@ -66,7 +66,7 @@ else:
         F.sum("final_forecast_tons").alias("total_final_tons"),
         F.count("*").alias("n_rows"),
     ).withColumn("aggregated_at", F.current_timestamp())
-    write_lakehouse_table(grand, gold_lakehouse_id, "agg_grand_total", mode="overwrite")
-    logger.info(f"[aggregate] agg_grand_total: {grand.count()} rows")
+    write_lakehouse_table(grand, gold_lakehouse_id, cfg("agg_grand_total_table"), mode="overwrite")
+    logger.info(f"[aggregate] {cfg('agg_grand_total_table')}: {grand.count()} rows")
 
 logger.info("[aggregate] Complete.")

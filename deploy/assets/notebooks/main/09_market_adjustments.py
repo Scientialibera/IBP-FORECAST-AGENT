@@ -41,7 +41,7 @@ else:
     # Forecast grain is (plant_id, sku_id) -- join market_id from orders/bronze
     if "market_id" not in sales.columns:
         logger.info("[market_adj] Joining market_id from bronze orders...")
-        orders_spark = read_lakehouse_table(spark, bronze_lakehouse_id, "orders")
+        orders_spark = read_lakehouse_table(spark, bronze_lakehouse_id, cfg("primary_table"))
         market_map = (orders_spark.select("sku_id", "market_id")
                       .distinct()
                       .dropDuplicates(["sku_id"])

@@ -28,7 +28,7 @@ repeater_threshold = float(cfg("repeater_threshold"))
 xyz_x_threshold = float(cfg("xyz_cv_threshold_x"))
 xyz_y_threshold = float(cfg("xyz_cv_threshold_y"))
 
-enabled = True
+enabled = cfg("sku_classification_enabled")
 if not enabled:
     logger.info("[sku_class] Disabled in config. Set sku_classification.enabled = true to run.")
 else:
@@ -36,7 +36,7 @@ else:
     feature_spark = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
     feature_pdf = feature_spark.toPandas()
 
-    sku_col = "sku_id"
+    sku_col = cfg("grain_columns")[1]
 
     logger.info("[sku_class] Computing ABC classification...")
     sku_volume = feature_pdf.groupby(sku_col)[target_column].sum().reset_index()

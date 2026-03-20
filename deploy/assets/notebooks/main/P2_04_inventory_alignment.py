@@ -20,8 +20,12 @@ import pandas as pd
 import numpy as np
 
 forecast_table = cfg("output_table")
-inventory_table = "inventory_finished_goods"
+inventory_table = cfg("inventory_table")
 grain_columns = cfg("grain_columns")
+near_term_months = cfg("inventory_near_term_months")
+stockout_threshold_months = cfg("inventory_stockout_threshold_months")
+overbuild_threshold_months = cfg("inventory_overbuild_threshold_months")
+inventory_alignment_table = cfg("inventory_alignment_table")
 
 if not gold_lakehouse_id or not bronze_lakehouse_id:
     raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
@@ -57,7 +61,7 @@ else:
         ).reset_index()
 
         forecast_pdf["period_dt"] = pd.to_datetime(forecast_pdf["period"])
-        cutoff = forecast_pdf["period_dt"].min() + pd.DateOffset(months=3)
+        cutoff = forecast_pdf["period_dt"].min() + pd.DateOffset(months=near_term_months)
         near_term = forecast_pdf[forecast_pdf["period_dt"] <= cutoff]
 
         fc_col = "final_forecast_tons" if "final_forecast_tons" in near_term.columns else "forecast_tons"
@@ -73,13 +77,13 @@ else:
 
         alignment["coverage_months"] = np.where(
             alignment["demand_3m"] > 0,
-            (alignment["current_inventory"] / alignment["demand_3m"]) * 3,
+            (alignment["current_inventory"] / alignment["demand_3m"]) * near_term_months,
             np.where(alignment["current_inventory"] > 0, 99, 0)
         )
 
         alignment["risk_flag"] = alignment.apply(
-            lambda r: "stock_out_risk" if r["coverage_months"] < 1
-            else ("overbuild" if r["coverage_months"] > 6 else "healthy"),
+            lambda r: "stock_out_risk" if r["coverage_months"] < stockout_threshold_months
+            else ("overbuild" if r["coverage_months"] > overbuild_threshold_months else "healthy"),
             axis=1
         )
 
@@ -87,7 +91,7 @@ else:
         alignment["shortfall_tons"] = np.maximum(0, alignment["demand_3m"] - alignment["current_inventory"])
 
         align_spark = spark.createDataFrame(alignment)
-        write_lakehouse_table(align_spark, gold_lakehouse_id, "inventory_alignment", mode="overwrite")
+        write_lakehouse_table(align_spark, gold_lakehouse_id, inventory_alignment_table, mode="overwrite")
         logger.info(f"[inventory] Wrote {len(alignment)} alignment rows")
 
         n_risk = (alignment["risk_flag"] == "stock_out_risk").sum()

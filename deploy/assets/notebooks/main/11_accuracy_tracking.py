@@ -38,7 +38,7 @@ else:
     logger.info(f"[accuracy] {len(system_forecasts)} system forecast rows across {system_forecasts['snapshot_month'].nunique()} snapshots")
 
     # Load actuals from bronze (primary source table)
-    primary_table = source_tables[0] if source_tables else "orders"
+    primary_table = source_tables[0] if source_tables else cfg("primary_table")
     logger.info(f"[accuracy] Loading actuals from bronze.{primary_table}")
     actuals_spark = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table)
     actuals_pdf = actuals_spark.toPandas()
@@ -81,10 +81,10 @@ else:
                     logger.info(f"[accuracy] Wrote accuracy_by_{level_col}")
 
         # Model recommendations per grain
-        recommendations = recommend_model_by_grain(accuracy_df, grain_columns, metric="mape")
+        recommendations = recommend_model_by_grain(accuracy_df, grain_columns, metric=cfg("accuracy_recommendation_metric"))
         if not recommendations.empty:
             rec_spark = spark.createDataFrame(recommendations)
-            write_lakehouse_table(rec_spark, gold_lakehouse_id, "model_recommendations", mode="overwrite")
+            write_lakehouse_table(rec_spark, gold_lakehouse_id, cfg("model_recommendations_table"), mode="overwrite")
             logger.info(f"[accuracy] Model recommendations: {len(recommendations)} grains")
 
         # Summary

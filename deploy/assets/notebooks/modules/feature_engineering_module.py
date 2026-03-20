@@ -26,10 +26,9 @@ def aggregate_to_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
 
 
 def add_lag_features(df: pd.DataFrame, grain_columns: list,
-                     target_column: str, lags: list = None) -> pd.DataFrame:
+                     target_column: str, lag_periods=None) -> pd.DataFrame:
     """Add lag features per grain."""
-    if lags is None:
-        lags = [1, 2, 3, 6, 12]
+    lags = lag_periods or [1, 2, 3, 6, 12]
     df = df.sort_values(grain_columns + ["period"]).copy()
     for lag in lags:
         df[f"{target_column}_lag_{lag}"] = df.groupby(grain_columns)[target_column].shift(lag)
@@ -37,10 +36,9 @@ def add_lag_features(df: pd.DataFrame, grain_columns: list,
 
 
 def add_rolling_features(df: pd.DataFrame, grain_columns: list,
-                         target_column: str, windows: list = None) -> pd.DataFrame:
+                         target_column: str, rolling_windows=None) -> pd.DataFrame:
     """Add rolling mean and std features per grain."""
-    if windows is None:
-        windows = [3, 6, 12]
+    windows = rolling_windows or [3, 6, 12]
     df = df.sort_values(grain_columns + ["period"]).copy()
     for w in windows:
         df[f"{target_column}_roll_mean_{w}"] = (
@@ -67,10 +65,11 @@ def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_feature_table(df: pd.DataFrame, date_column: str, grain_columns: list,
                         target_column: str, feature_columns: list,
-                        frequency: str = "M") -> pd.DataFrame:
+                        frequency: str = "M", lag_periods=None,
+                        rolling_windows=None) -> pd.DataFrame:
     """Full feature engineering pipeline."""
     result = aggregate_to_grain(df, date_column, grain_columns, target_column, feature_columns, frequency)
-    result = add_lag_features(result, grain_columns, target_column)
-    result = add_rolling_features(result, grain_columns, target_column)
+    result = add_lag_features(result, grain_columns, target_column, lag_periods)
+    result = add_rolling_features(result, grain_columns, target_column, rolling_windows)
     result = add_calendar_features(result)
     return result

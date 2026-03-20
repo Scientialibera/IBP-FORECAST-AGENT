@@ -39,7 +39,7 @@ if not silver_lakehouse_id or not gold_lakehouse_id:
     raise ValueError("silver_lakehouse_id and gold_lakehouse_id are required.")
 
 logger.info("[score] Loading feature table from silver.")
-spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, cfg("feature_table"))
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
 logger.info(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
 
@@ -96,8 +96,8 @@ except Exception as e:
 if all_forecasts:
     combined = pd.concat(all_forecasts, ignore_index=True)
     combined_spark = spark.createDataFrame(combined)
-    write_lakehouse_table(combined_spark, silver_lakehouse_id, "raw_forecasts", mode="overwrite")
-    logger.info(f"[score] Wrote {len(combined)} raw forecast rows to silver.raw_forecasts")
+    write_lakehouse_table(combined_spark, silver_lakehouse_id, cfg("raw_forecasts_table"), mode="overwrite")
+    logger.info(f"[score] Wrote {len(combined)} raw forecast rows to silver.{cfg('raw_forecasts_table')}")
 else:
     logger.warning("[score] WARNING: No forecasts produced.")
 

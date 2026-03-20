@@ -25,7 +25,7 @@ grain_columns = cfg("grain_columns")
 signal_columns = cfg("signal_columns")
 signals_table = cfg("signals_table")
 
-enabled = True
+enabled = cfg("external_signals_enabled")
 if not enabled:
     logger.info("[external_signals] Disabled in config. Set external_signals.enabled = true to run.")
 else:
@@ -34,7 +34,7 @@ else:
     signals_pdf = signals_spark.toPandas()
     logger.info(f"[external_signals] Loaded {len(signals_pdf)} signal rows")
 
-    feature_spark = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+    feature_spark = read_lakehouse_table(spark, silver_lakehouse_id, cfg("feature_table"))
     feature_pdf = feature_spark.toPandas()
 
     if "period" in signals_pdf.columns:
@@ -77,7 +77,7 @@ else:
         logger.info("\n%s", imp_df.head(10)[["signal"] + grain_columns + ["correlation"]].to_string(index=False))
 
     enriched_spark = spark.createDataFrame(enriched)
-    write_lakehouse_table(enriched_spark, silver_lakehouse_id, "feature_table_enriched", mode="overwrite")
+    write_lakehouse_table(enriched_spark, silver_lakehouse_id, cfg("feature_table_enriched"), mode="overwrite")
     logger.info(f"[external_signals] Wrote enriched feature table ({len(enriched)} rows)")
 
 logger.info("[external_signals] Complete.")

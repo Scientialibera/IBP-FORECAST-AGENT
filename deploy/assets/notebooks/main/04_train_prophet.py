@@ -27,7 +27,7 @@ min_series_length = cfg("min_series_length")
 
 
 logger.info("[prophet] Loading feature table.")
-spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
+spark_df = read_lakehouse_table(spark, silver_lakehouse_id, cfg("feature_table"))
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
 logger.info(f"[prophet] Loaded {len(pdf)} rows.")
 
@@ -41,6 +41,6 @@ results_df, agg_metrics = train_prophet_per_grain(
 
 if not results_df.empty:
     preds_spark = spark.createDataFrame(results_df)
-    write_lakehouse_table(preds_spark, silver_lakehouse_id, "prophet_predictions", mode="overwrite")
+    write_lakehouse_table(preds_spark, silver_lakehouse_id, cfg("prediction_tables")[1], mode="overwrite")
 
 logger.info("[prophet] Complete.")

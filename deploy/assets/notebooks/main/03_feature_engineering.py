@@ -28,7 +28,7 @@ if not bronze_lakehouse_id or not silver_lakehouse_id:
 logger.info(f"[feature_eng] Grain: {grain_columns}, Target: {target_column}")
 logger.info(f"[feature_eng] Features: {feature_columns}, Frequency: {frequency}")
 
-primary_table = source_tables[0] if source_tables else "orders"
+primary_table = source_tables[0] if source_tables else cfg("primary_table")
 logger.info(f"[feature_eng] Reading primary table: {primary_table}")
 spark_df = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table)
 
@@ -41,10 +41,13 @@ if missing:
 pdf = spark_df.toPandas()
 logger.info(f"[feature_eng] Loaded {len(pdf)} rows from bronze.")
 
-feature_df = build_feature_table(pdf, date_column, grain_columns, target_column, feature_columns, frequency)
+feature_df = build_feature_table(
+    pdf, date_column, grain_columns, target_column, feature_columns, frequency,
+    lag_periods=cfg("lag_periods"), rolling_windows=cfg("rolling_windows"),
+)
 logger.info(f"[feature_eng] Feature table: {len(feature_df)} rows, {len(feature_df.columns)} columns")
 
 feature_spark = spark.createDataFrame(feature_df)
-write_lakehouse_table(feature_spark, silver_lakehouse_id, "feature_table", mode="overwrite")
+write_lakehouse_table(feature_spark, silver_lakehouse_id, cfg("feature_table"), mode="overwrite")
 
 logger.info("[feature_eng] Complete.")

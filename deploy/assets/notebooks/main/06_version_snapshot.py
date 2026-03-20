@@ -22,7 +22,7 @@ output_table = cfg("output_table")
 keep_n = cfg("keep_n_snapshots")
 
 logger.info(f"[version] Creating snapshot in gold.{output_table}")
-raw_df = read_lakehouse_table(spark, silver_lakehouse_id, "raw_forecasts").toPandas()
+raw_df = read_lakehouse_table(spark, silver_lakehouse_id, cfg("raw_forecasts_table")).toPandas()
 logger.info(f"[version] Read {len(raw_df)} raw forecast rows from silver")
 
 if raw_df.empty:

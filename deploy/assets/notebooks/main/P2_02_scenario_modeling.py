@@ -23,7 +23,7 @@ forecast_table = cfg("output_table")
 scenarios_table = cfg("scenarios_table")
 grain_columns = cfg("grain_columns")
 
-enabled = True
+enabled = cfg("scenarios_enabled")
 if not enabled:
     logger.info("[scenarios] Disabled in config. Set scenarios.enabled = true to run.")
 else:
@@ -75,7 +75,7 @@ else:
         if all_scenario_results:
             combined = pd.concat(all_scenario_results, ignore_index=True)
             combined_spark = spark.createDataFrame(combined)
-            write_lakehouse_table(combined_spark, gold_lakehouse_id, "scenario_comparison", mode="overwrite")
+            write_lakehouse_table(combined_spark, gold_lakehouse_id, cfg("scenario_comparison_table"), mode="overwrite")
             logger.info(f"[scenarios] Wrote {len(combined)} scenario rows")
 
             summary = combined.groupby("scenario_name").agg(

@@ -40,8 +40,8 @@ workspace_id = spark.conf.get("trident.workspace.id")
 token = notebookutils.credentials.getToken("pbi")
 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-REPORT_NAME = "IBP Backtest - Actual vs Predicted"
-REPORT_DESCRIPTION = "Generated from extracted report definition."
+REPORT_NAME = cfg("report_name")
+REPORT_DESCRIPTION = cfg("report_description")
 SEMANTIC_MODEL_NAME = cfg("semantic_model_name")
 
 # ---------------------------------------------------------------------------
@@ -1338,7 +1338,7 @@ folders_resp = requests.get(
 )
 if folders_resp.status_code == 200:
     for f in folders_resp.json().get("value", []):
-        if f["displayName"] == "reports":
+        if f["displayName"] == cfg("reports_folder"):
             reports_folder_id = f["id"]
             break
 logger.info("Reports folder: %s", reports_folder_id or "workspace root")
