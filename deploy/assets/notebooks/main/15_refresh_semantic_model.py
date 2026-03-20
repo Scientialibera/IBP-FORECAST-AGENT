@@ -13,7 +13,7 @@ gold_lakehouse_id = ""
 import json, requests, base64, time
 
 semantic_model_name = cfg("semantic_model_name")
-print(f"[semantic] Create/update semantic model: {semantic_model_name}")
+logger.info(f"[semantic] Create/update semantic model: {semantic_model_name}")
 
 workspace_id = spark.conf.get("trident.workspace.id")
 token = notebookutils.credentials.getToken("pbi")
@@ -25,8 +25,8 @@ gold_detail = requests.get(
 ).json()
 sql_endpoint = gold_detail["properties"]["sqlEndpointProperties"]["connectionString"]
 lh_name = gold_detail["displayName"]
-print(f"[semantic] Gold SQL endpoint: {sql_endpoint}")
-print(f"[semantic] Gold lakehouse:    {lh_name}")
+logger.info(f"[semantic] Gold SQL endpoint: {sql_endpoint}")
+logger.info(f"[semantic] Gold lakehouse:    {lh_name}")
 
 folders_resp = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/folders",
@@ -37,7 +37,7 @@ for f in folders_resp.json().get("value", []):
     if f["displayName"] == "semantic_models":
         sm_folder_id = f["id"]
         break
-print(f"[semantic] Target folder: {sm_folder_id or 'workspace root'}")
+logger.info(f"[semantic] Target folder: {sm_folder_id or 'workspace root'}")
 
 bim = {
     "compatibilityLevel": 1604,
@@ -65,19 +65,6 @@ bim = {
                 ],
                 "partitions": [{"name": "forecast_versions", "mode": "directLake",
                     "source": {"type": "entity", "entityName": "forecast_versions", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
-            },
-            {
-                "name": "Consensus Forecast",
-                "columns": [
-                    {"name": "plant_id",       "dataType": "string",  "sourceColumn": "plant_id",       "summarizeBy": "none"},
-                    {"name": "sku_id",         "dataType": "string",  "sourceColumn": "sku_id",         "summarizeBy": "none"},
-                    {"name": "period",         "dataType": "string",  "sourceColumn": "period",         "summarizeBy": "none"},
-                    {"name": "forecast_tons",  "dataType": "double",  "sourceColumn": "forecast_tons",  "summarizeBy": "sum"},
-                    {"name": "forecast_type",  "dataType": "string",  "sourceColumn": "forecast_type",  "summarizeBy": "none"},
-                ],
-                "measures": [{"name": "Consensus Total Tons", "expression": "SUM('Consensus Forecast'[forecast_tons])"}],
-                "partitions": [{"name": "consensus_forecast", "mode": "directLake",
-                    "source": {"type": "entity", "entityName": "consensus_forecast", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
             },
             {
                 "name": "Reporting Actuals vs Forecast",
@@ -128,22 +115,18 @@ bim = {
                     "source": {"type": "entity", "entityName": "master_plant", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
             },
             {
-                "name": "Aggregated Forecast",
-                "columns": [
-                    {"name": "hierarchy_level", "dataType": "string", "sourceColumn": "hierarchy_level", "summarizeBy": "none"},
-                    {"name": "plant_id",        "dataType": "string", "sourceColumn": "plant_id",        "summarizeBy": "none"},
-                    {"name": "sku_id",          "dataType": "string", "sourceColumn": "sku_id",          "summarizeBy": "none"},
-                    {"name": "forecast_tons",   "dataType": "double", "sourceColumn": "forecast_tons",   "summarizeBy": "sum"},
-                ],
-                "partitions": [{"name": "aggregated_forecast", "mode": "directLake",
-                    "source": {"type": "entity", "entityName": "aggregated_forecast", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
-            },
-            {
                 "name": "Capacity Translation",
                 "columns": [
-                    {"name": "plant_id",      "dataType": "string", "sourceColumn": "plant_id",      "summarizeBy": "none"},
-                    {"name": "sku_id",        "dataType": "string", "sourceColumn": "sku_id",        "summarizeBy": "none"},
-                    {"name": "forecast_tons", "dataType": "double", "sourceColumn": "forecast_tons", "summarizeBy": "sum"},
+                    {"name": "plant_id",         "dataType": "string", "sourceColumn": "plant_id",         "summarizeBy": "none"},
+                    {"name": "sku_id",           "dataType": "string", "sourceColumn": "sku_id",           "summarizeBy": "none"},
+                    {"name": "period",           "dataType": "string", "sourceColumn": "period",           "summarizeBy": "none"},
+                    {"name": "forecast_tons",    "dataType": "double", "sourceColumn": "forecast_tons",    "summarizeBy": "sum"},
+                    {"name": "lineal_feet",      "dataType": "double", "sourceColumn": "lineal_feet",      "summarizeBy": "sum"},
+                    {"name": "production_hours", "dataType": "double", "sourceColumn": "production_hours", "summarizeBy": "sum"},
+                ],
+                "measures": [
+                    {"name": "Total Lineal Feet",      "expression": "SUM('Capacity Translation'[lineal_feet])",      "formatString": "#,0"},
+                    {"name": "Total Production Hours",  "expression": "SUM('Capacity Translation'[production_hours])", "formatString": "#,0.0"},
                 ],
                 "partitions": [{"name": "capacity_translation", "mode": "directLake",
                     "source": {"type": "entity", "entityName": "capacity_translation", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
@@ -154,8 +137,8 @@ bim = {
             {"name": "FK_FV_Plant",        "fromTable": "Forecast Versions",             "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
             {"name": "FK_Reporting_SKU",   "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
             {"name": "FK_Reporting_Plant", "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
-            {"name": "FK_Consensus_SKU",   "fromTable": "Consensus Forecast",            "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
-            {"name": "FK_Consensus_Plant", "fromTable": "Consensus Forecast",            "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+            {"name": "FK_Capacity_SKU",    "fromTable": "Capacity Translation",          "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_Capacity_Plant",  "fromTable": "Capacity Translation",          "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
         ],
         "expressions": [
             {
@@ -194,7 +177,7 @@ existing = [m for m in sm_resp.json().get("value", []) if m["displayName"] == se
 
 if existing:
     sm_id = existing[0]["id"]
-    print(f"[semantic] Model exists ({sm_id}), updating definition...")
+    logger.info(f"[semantic] Model exists ({sm_id}), updating definition...")
     update_resp = requests.post(
         f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items/{sm_id}/updateDefinition",
         headers=headers,
@@ -210,11 +193,11 @@ if existing:
                     break
                 if poll.get("status") == "Failed":
                     raise Exception(f"Update LRO failed: {poll.get('error', {}).get('message', 'unknown')}")
-        print("[semantic] Definition updated.")
+        logger.info("[semantic] Definition updated.")
     else:
         raise Exception(f"updateDefinition failed: {update_resp.status_code} -- {update_resp.text}")
 else:
-    print("[semantic] Model does not exist, creating...")
+    logger.info("[semantic] Model does not exist, creating...")
     create_body = {
         "displayName": semantic_model_name,
         "type": "SemanticModel",
@@ -238,7 +221,7 @@ else:
                 break
             if poll.get("status") == "Failed":
                 raise Exception(f"Create LRO failed: {poll.get('error', {}).get('message', 'unknown')}")
-    print("[semantic] Model created.")
+    logger.info("[semantic] Model created.")
 
 sm_items = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=SemanticModel",
@@ -247,7 +230,7 @@ sm_items = requests.get(
 sm_final = [m for m in sm_items.get("value", []) if m["displayName"] == semantic_model_name]
 if sm_final:
     sm_id = sm_final[0]["id"]
-    print(f"[semantic] Triggering refresh for {sm_id}...")
+    logger.info(f"[semantic] Triggering refresh for {sm_id}...")
     pbi_token = notebookutils.credentials.getToken("pbi")
     refresh_resp = requests.post(
         f"https://api.powerbi.com/v1.0/myorg/groups/{workspace_id}/datasets/{sm_id}/refreshes",
@@ -255,9 +238,9 @@ if sm_final:
         json={"type": "Full"},
     )
     if refresh_resp.status_code in (200, 202):
-        print(f"[semantic] Refresh triggered (status={refresh_resp.status_code})")
+        logger.info(f"[semantic] Refresh triggered (status={refresh_resp.status_code})")
     else:
-        print(f"[semantic] Refresh failed: {refresh_resp.status_code} -- {refresh_resp.text}")
+        logger.error(f"[semantic] Refresh failed: {refresh_resp.status_code} -- {refresh_resp.text}")
         raise Exception(f"Refresh failed: {refresh_resp.status_code}")
 
-print("[semantic] Complete.")
+logger.info("[semantic] Complete.")

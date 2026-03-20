@@ -20,7 +20,7 @@ if not bronze_lakehouse_id:
     raise ValueError("bronze_lakehouse_id is required.")
 
 for table_name in source_tables:
-    print(f"\n[transform] Cleaning: {table_name}")
+    logger.info(f"\n[transform] Cleaning: {table_name}")
     df = read_lakehouse_table(spark, landing_lakehouse_id, table_name)
 
     original_count = df.count()
@@ -32,6 +32,6 @@ for table_name in source_tables:
     df = df.withColumn("_ingested_at", F.current_timestamp())
 
     write_lakehouse_table(df, bronze_lakehouse_id, table_name, mode="overwrite")
-    print(f"[transform] {table_name}: {original_count} -> {dedup_count} (dedup) -> {clean_count} (clean)")
+    logger.info(f"[transform] {table_name}: {original_count} -> {dedup_count} (dedup) -> {clean_count} (clean)")
 
-print("\n[transform] Complete.")
+logger.info("\n[transform] Complete.")

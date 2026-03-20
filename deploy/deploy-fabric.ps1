@@ -351,6 +351,8 @@ $genScript = Join-Path $PSScriptRoot "generate_pipelines.py"
 python $genScript
 
 # 7. Deploy Data Pipelines into the pipelines/ folder
+#    Orchestrator pipelines (those referencing other pipelines via {{PL_*}}) are
+#    deployed in a second pass after leaf pipelines so that IDs can be resolved.
 Write-Host "`n[8/8] Deploying Fabric Data Pipelines..." -ForegroundColor Yellow
 $pipelinesDir = Join-Path (Join-Path $PSScriptRoot "assets") "pipelines"
 if (Test-Path $pipelinesDir) {
@@ -358,13 +360,16 @@ if (Test-Path $pipelinesDir) {
     $nbMap = @{}
     foreach ($nb in $allNotebooks) { $nbMap[$nb.displayName] = $nb.id }
 
-    foreach ($pFile in (Get-ChildItem $pipelinesDir -Filter "*.json" | Sort-Object Name)) {
+    function Deploy-SinglePipeline($pFile, $plMap) {
         $pName = [System.IO.Path]::GetFileNameWithoutExtension($pFile.Name)
         $template = Get-Content $pFile.FullName -Raw -Encoding UTF8
 
         $template = $template.Replace('{{WORKSPACE_ID}}', $workspaceId)
         foreach ($kvp in $nbMap.GetEnumerator()) {
             $template = $template.Replace("{{NB_$($kvp.Key)}}", $kvp.Value)
+        }
+        foreach ($kvp in $plMap.GetEnumerator()) {
+            $template = $template.Replace("{{PL_$($kvp.Key)}}", $kvp.Value)
         }
         $template = $template.Replace('{{SOURCE_LH}}', $sourceId)
         $template = $template.Replace('{{LANDING_LH}}', $landingId)
@@ -382,14 +387,46 @@ if (Test-Path $pipelinesDir) {
             if (-not $existing) {
                 $body = @{ displayName = $pName; type = "DataPipeline"; definition = $definition }
                 if ($pipelinesFolderId) { $body.folderId = $pipelinesFolderId }
-                Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body | Out-Null
+                $result = Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items" -Body $body
                 Write-Host "  Pipeline '$pName' -- created (in pipelines/ folder)"
+                return $result.id
             } else {
                 Invoke-FabricApi -Method "POST" -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/items/$($existing.id)/updateDefinition" -Body @{ definition = $definition } | Out-Null
                 Write-Host "  Pipeline '$pName' -- updated"
+                return $existing.id
             }
         } catch {
             Write-Warning "  Pipeline '$pName' -- FAILED: $_"
+            return $null
+        }
+    }
+
+    $allFiles = Get-ChildItem $pipelinesDir -Filter "*.json" | Sort-Object Name
+    $leafFiles = @()
+    $orchestratorFiles = @()
+    foreach ($f in $allFiles) {
+        $raw = Get-Content $f.FullName -Raw -Encoding UTF8
+        if ($raw -match '\{\{PL_') {
+            $orchestratorFiles += $f
+        } else {
+            $leafFiles += $f
+        }
+    }
+
+    $plMap = @{}
+    Write-Host "  -- Leaf pipelines --"
+    foreach ($f in $leafFiles) {
+        $pName = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+        $id = Deploy-SinglePipeline $f $plMap
+        if ($id) { $plMap[$pName] = $id }
+    }
+
+    if ($orchestratorFiles.Count -gt 0) {
+        Write-Host "  -- Orchestrator pipelines --"
+        foreach ($f in $orchestratorFiles) {
+            $pName = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+            $id = Deploy-SinglePipeline $f $plMap
+            if ($id) { $plMap[$pName] = $id }
         }
     }
 } else {

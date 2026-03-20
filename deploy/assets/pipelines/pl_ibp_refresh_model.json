@@ -1,0 +1,34 @@
+{
+  "name": "pl_ibp_refresh_model",
+  "properties": {
+    "activities": [
+      {
+        "name": "15_refresh_semantic_model",
+        "type": "TridentNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_15_refresh_semantic_model}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "gold_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{GOLD_LH}}"
+      }
+    },
+    "annotations": []
+  }
+}

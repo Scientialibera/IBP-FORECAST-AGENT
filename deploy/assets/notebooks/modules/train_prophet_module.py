@@ -7,6 +7,9 @@ import tempfile
 import os
 import pandas as pd
 import numpy as np
+import logging
+
+logger = logging.getLogger("ibp")
 
 warnings.filterwarnings("ignore")
 
@@ -74,7 +77,7 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
     groups = df.groupby(grain_columns)
     total = len(groups)
     label = "[prophet+tune]" if tuning_enabled else "[prophet]"
-    print(f"{label} Training on {total} grain combinations...")
+    logger.info(f"{label} Training on {total} grain combinations...")
 
     for i, (grain_key, group) in enumerate(groups):
         if isinstance(grain_key, str):
@@ -138,7 +141,7 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
                 pass
 
         if (i + 1) % 50 == 0:
-            print(f"{label} Processed {i + 1}/{total} grains")
+            logger.info(f"{label} Processed {i + 1}/{total} grains")
 
     agg_metrics = {}
     if all_metrics:
@@ -165,10 +168,10 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
                         with open(params_path, "wb") as f:
                             pickle.dump(grain_best_params, f)
                         mlflow.log_artifact(params_path, "tuning")
-                    print(f"{label} Logged {len(grain_models)} grain models to MLflow run {run.info.run_id}")
+                    logger.info(f"{label} Logged {len(grain_models)} grain models to MLflow run {run.info.run_id}")
             except Exception as e:
-                print(f"{label} MLflow logging warning: {e}")
+                logger.warning(f"{label} MLflow logging warning: {e}")
 
     tuned_str = f", {len(grain_best_params)} tuned" if tuning_enabled else ""
-    print(f"{label} Complete. {len(results)} prediction rows, avg MAPE={agg_metrics.get('mape', 'N/A')}{tuned_str}")
+    logger.info(f"{label} Complete. {len(results)} prediction rows, avg MAPE={agg_metrics.get('mape', 'N/A')}{tuned_str}")
     return pd.DataFrame(results), agg_metrics

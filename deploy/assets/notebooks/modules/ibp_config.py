@@ -3,6 +3,11 @@
 # Single source of truth for all pipeline parameters, thresholds, and table names.
 # Lakehouse IDs are NOT here -- they are injected per-notebook at deploy time.
 
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
+logger = logging.getLogger("ibp")
+logger.setLevel(logging.INFO)
+
 IBP_CONFIG = {
     # ── Data Schema ──────────────────────────────────────────────
     "date_column":              "period_date",

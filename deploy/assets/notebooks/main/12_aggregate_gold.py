@@ -17,13 +17,13 @@ hierarchy_levels = cfg("hierarchy_levels")
 if not gold_lakehouse_id:
     raise ValueError("gold_lakehouse_id is required.")
 
-print("[aggregate] Loading forecast versions from gold.")
+logger.info("[aggregate] Loading forecast versions from gold.")
 forecast_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
 total = forecast_df.count()
-print(f"[aggregate] Total rows: {total}")
+logger.info(f"[aggregate] Total rows: {total}")
 
 if total == 0:
-    print("[aggregate] No data. Exiting.")
+    logger.info("[aggregate] No data. Exiting.")
 else:
     # Aggregate per version_type at each hierarchy level
     for version_type in ["system", "sales", "consensus"]:
@@ -57,7 +57,7 @@ else:
 
             table_name = f"agg_{version_type}_by_{'_'.join(valid_cols)}"
             write_lakehouse_table(agg_df, gold_lakehouse_id, table_name, mode="overwrite")
-            print(f"[aggregate] {table_name}: {agg_df.count()} rows")
+            logger.info(f"[aggregate] {table_name}: {agg_df.count()} rows")
 
     # Grand total
     grand = forecast_df.groupBy("version_type", "model_type").agg(
@@ -66,6 +66,6 @@ else:
         F.count("*").alias("n_rows"),
     ).withColumn("aggregated_at", F.current_timestamp())
     write_lakehouse_table(grand, gold_lakehouse_id, "agg_grand_total", mode="overwrite")
-    print(f"[aggregate] agg_grand_total: {grand.count()} rows")
+    logger.info(f"[aggregate] agg_grand_total: {grand.count()} rows")
 
-print("[aggregate] Complete.")
+logger.info("[aggregate] Complete.")

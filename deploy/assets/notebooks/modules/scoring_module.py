@@ -6,6 +6,9 @@ import pickle
 import os
 import pandas as pd
 import numpy as np
+import logging
+
+logger = logging.getLogger("ibp")
 
 warnings.filterwarnings("ignore")
 
@@ -31,13 +34,13 @@ def _load_grain_models(experiment_name: str, run_name_prefix: str, artifact_file
         )
 
     run_id = runs.iloc[0]["run_id"]
-    print(f"[scoring] Loading models from run {run_id} ({run_name_prefix})")
+    logger.info(f"[scoring] Loading models from run {run_id} ({run_name_prefix})")
 
     local_dir = mlflow.artifacts.download_artifacts(run_id=run_id, artifact_path="models")
     pkl_path = os.path.join(local_dir, artifact_filename)
     with open(pkl_path, "rb") as f:
         models = pickle.load(f)
-    print(f"[scoring] Loaded {len(models)} grain models")
+    logger.info(f"[scoring] Loaded {len(models)} grain models")
     return models
 
 
@@ -84,7 +87,7 @@ def forecast_sarima_forward(df: pd.DataFrame, date_column: str, grain_columns: l
         results.extend(_build_rows(future, preds, grain_key, grain_columns, "sarima"))
 
     if skipped:
-        print(f"[scoring] SARIMA: skipped {skipped} grains (no trained model)")
+        logger.warning(f"[scoring] SARIMA: skipped {skipped} grains (no trained model)")
     return pd.DataFrame(results)
 
 
@@ -121,7 +124,7 @@ def forecast_prophet_forward(df: pd.DataFrame, date_column: str, grain_columns: 
             results.append(r)
 
     if skipped:
-        print(f"[scoring] Prophet: skipped {skipped} grains (no trained model)")
+        logger.warning(f"[scoring] Prophet: skipped {skipped} grains (no trained model)")
     return pd.DataFrame(results)
 
 
@@ -158,7 +161,7 @@ def forecast_var_forward(df: pd.DataFrame, date_column: str, grain_columns: list
         results.extend(_build_rows(future, preds, grain_key, grain_columns, "var"))
 
     if skipped:
-        print(f"[scoring] VAR: skipped {skipped} grains (no trained model)")
+        logger.warning(f"[scoring] VAR: skipped {skipped} grains (no trained model)")
     return pd.DataFrame(results)
 
 
@@ -190,5 +193,5 @@ def forecast_ets_forward(df: pd.DataFrame, date_column: str, grain_columns: list
         results.extend(_build_rows(future, preds, grain_key, grain_columns, "exp_smoothing"))
 
     if skipped:
-        print(f"[scoring] ETS: skipped {skipped} grains (no trained model)")
+        logger.warning(f"[scoring] ETS: skipped {skipped} grains (no trained model)")
     return pd.DataFrame(results)

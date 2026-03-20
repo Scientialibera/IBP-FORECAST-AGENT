@@ -3,6 +3,9 @@
 
 import pandas as pd
 from datetime import datetime
+import logging
+
+logger = logging.getLogger("ibp")
 
 
 def stamp_forecast_version(df: pd.DataFrame, version_type: str = "system",
@@ -70,24 +73,4 @@ def purge_old_snapshots(spark, gold_lakehouse_id: str, table_name: str,
     filtered = df[df["snapshot_month"].isin(months_to_keep)]
     sdf = spark.createDataFrame(filtered)
     write_lakehouse_table(sdf, gold_lakehouse_id, table_name, mode="overwrite")
-    print(f"[versioning] Purged {len(unique_months) - keep_n} old snapshots, kept {keep_n}")
-
-
-def create_forecast_snapshot(spark, silver_lakehouse_id: str, gold_lakehouse_id: str,
-                             output_table: str = "forecast_versions",
-                             keep_n: int = 24) -> str:
-    """Read raw forecasts from silver, stamp with version info, append to gold, and purge old snapshots."""
-    pdf = read_lakehouse_table(spark, silver_lakehouse_id, "raw_forecasts").toPandas()
-    if pdf.empty:
-        print("[versioning] No raw_forecasts found in silver -- skipping snapshot.")
-        return ""
-
-    versioned, version_id = stamp_forecast_version(pdf, version_type="system")
-    print(f"[versioning] Stamped {len(versioned)} rows with version_id={version_id}")
-
-    append_versioned_forecast(spark, gold_lakehouse_id, output_table, versioned)
-    print(f"[versioning] Appended to gold.{output_table}")
-
-    purge_old_snapshots(spark, gold_lakehouse_id, output_table, keep_n=keep_n)
-
-    return version_id
+    logger.info(f"[versioning] Purged {len(unique_months) - keep_n} old snapshots, kept {keep_n}")

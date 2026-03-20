@@ -26,7 +26,7 @@ HISTORY_MONTHS = int(cfg("history_months") or 42)
 SEED = int(cfg("seed") or 42)
 
 np.random.seed(SEED)
-print(f"[test_data] Generating {HISTORY_MONTHS} months of history for "
+logger.info(f"[test_data] Generating {HISTORY_MONTHS} months of history for "
       f"{N_SKUS} SKUs, {N_PLANTS} plants, {N_CUSTOMERS} customers, {N_MARKETS} markets")
 
 # ── Date range ──────────────────────────────────────────────────
@@ -75,7 +75,7 @@ for i in range(N_LINES):
     })
 
 # Write master tables
-print("[test_data] Writing master tables...")
+logger.info("[test_data] Writing master tables...")
 
 master_sku_df = spark.createDataFrame(pd.DataFrame(skus))
 write_lakehouse_table(master_sku_df, source_lakehouse_id, "master_sku", mode="overwrite")
@@ -98,11 +98,11 @@ write_lakehouse_table(master_market_df, source_lakehouse_id, "master_market", mo
 prod_lines_df = spark.createDataFrame(pd.DataFrame(lines))
 write_lakehouse_table(prod_lines_df, source_lakehouse_id, "production_lines", mode="overwrite")
 
-print(f"  master_sku: {len(skus)}, master_plant: {N_PLANTS}, master_customer: {N_CUSTOMERS}, "
+logger.info(f"  master_sku: {len(skus)}, master_plant: {N_PLANTS}, master_customer: {N_CUSTOMERS}, "
       f"master_market: {N_MARKETS}, production_lines: {N_LINES}")
 
 # ── Orders (main demand signal) ─────────────────────────────────
-print("[test_data] Generating orders with seasonal patterns...")
+logger.info("[test_data] Generating orders with seasonal patterns...")
 
 # Each SKU gets a base demand level + seasonality + noise
 orders_rows = []
@@ -148,20 +148,20 @@ for sku in skus:
 orders_df = pd.DataFrame(orders_rows)
 orders_spark = spark.createDataFrame(orders_df)
 write_lakehouse_table(orders_spark, source_lakehouse_id, "orders", mode="overwrite")
-print(f"  orders: {len(orders_df)} rows")
+logger.info(f"  orders: {len(orders_df)} rows")
 
 # ── Shipments (similar to orders, slightly lagged) ──────────────
-print("[test_data] Generating shipments...")
+logger.info("[test_data] Generating shipments...")
 shipments_df = orders_df.copy()
 shipments_df["tons"] = (shipments_df["tons"] * np.random.uniform(0.85, 1.05, len(shipments_df))).round(2)
 shipments_df["shipped_date"] = pd.to_datetime(shipments_df["period_date"]) + pd.Timedelta(days=7)
 shipments_df["shipped_date"] = shipments_df["shipped_date"].astype(str)
 shipments_spark = spark.createDataFrame(shipments_df)
 write_lakehouse_table(shipments_spark, source_lakehouse_id, "shipments", mode="overwrite")
-print(f"  shipments: {len(shipments_df)} rows")
+logger.info(f"  shipments: {len(shipments_df)} rows")
 
 # ── Production History (width, line speed per plant/sku/line) ───
-print("[test_data] Generating production history...")
+logger.info("[test_data] Generating production history...")
 prod_rows = []
 for sku in skus:
     sku_id = sku["sku_id"]
@@ -188,10 +188,10 @@ for sku in skus:
 prod_history_df = pd.DataFrame(prod_rows)
 prod_spark = spark.createDataFrame(prod_history_df)
 write_lakehouse_table(prod_spark, source_lakehouse_id, "production_history", mode="overwrite")
-print(f"  production_history: {len(prod_history_df)} rows")
+logger.info(f"  production_history: {len(prod_history_df)} rows")
 
 # ── Budget Volumes ──────────────────────────────────────────────
-print("[test_data] Generating budget volumes...")
+logger.info("[test_data] Generating budget volumes...")
 budget_rows = []
 future_dates = pd.date_range(start=end_date, periods=12, freq="MS")
 all_budget_dates = list(dates[-6:]) + list(future_dates)
@@ -216,10 +216,10 @@ for sku in skus:
 budget_df = pd.DataFrame(budget_rows)
 budget_spark = spark.createDataFrame(budget_df)
 write_lakehouse_table(budget_spark, source_lakehouse_id, "budget_volumes", mode="overwrite")
-print(f"  budget_volumes: {len(budget_df)} rows")
+logger.info(f"  budget_volumes: {len(budget_df)} rows")
 
 # ── Finished Goods Inventory ────────────────────────────────────
-print("[test_data] Generating FG inventory...")
+logger.info("[test_data] Generating FG inventory...")
 inv_rows = []
 for sku in skus:
     sku_id = sku["sku_id"]
@@ -236,10 +236,10 @@ for sku in skus:
 inv_df = pd.DataFrame(inv_rows)
 inv_spark = spark.createDataFrame(inv_df)
 write_lakehouse_table(inv_spark, source_lakehouse_id, "inventory_finished_goods", mode="overwrite")
-print(f"  inventory_finished_goods: {len(inv_df)} rows")
+logger.info(f"  inventory_finished_goods: {len(inv_df)} rows")
 
 # ── Sales Overrides (a few manual adjustments) ──────────────────
-print("[test_data] Generating sales overrides...")
+logger.info("[test_data] Generating sales overrides...")
 override_rows = []
 for i in range(30):
     sku = skus[i % N_SKUS]
@@ -258,10 +258,10 @@ for i in range(30):
 override_df = pd.DataFrame(override_rows)
 override_spark = spark.createDataFrame(override_df)
 write_lakehouse_table(override_spark, source_lakehouse_id, "sales_overrides", mode="overwrite")
-print(f"  sales_overrides: {len(override_df)} rows")
+logger.info(f"  sales_overrides: {len(override_df)} rows")
 
 # ── Market Adjustments (±% by market) ───────────────────────────
-print("[test_data] Generating market adjustments...")
+logger.info("[test_data] Generating market adjustments...")
 adj_rows = []
 for market_id in markets:
     for period in future_dates:
@@ -276,10 +276,10 @@ for market_id in markets:
 adj_df = pd.DataFrame(adj_rows)
 adj_spark = spark.createDataFrame(adj_df)
 write_lakehouse_table(adj_spark, source_lakehouse_id, "market_adjustments", mode="overwrite")
-print(f"  market_adjustments: {len(adj_df)} rows")
+logger.info(f"  market_adjustments: {len(adj_df)} rows")
 
 # ── External Signals (Phase 2) ──────────────────────────────────
-print("[test_data] Generating external signals...")
+logger.info("[test_data] Generating external signals...")
 signal_rows = []
 for date in dates:
     month = date.month
@@ -294,10 +294,10 @@ for date in dates:
 signal_df = pd.DataFrame(signal_rows)
 signal_spark = spark.createDataFrame(signal_df)
 write_lakehouse_table(signal_spark, source_lakehouse_id, "external_signals", mode="overwrite")
-print(f"  external_signals: {len(signal_df)} rows")
+logger.info(f"  external_signals: {len(signal_df)} rows")
 
 # ── Scenario Definitions (Phase 2) ──────────────────────────────
-print("[test_data] Generating scenario definitions...")
+logger.info("[test_data] Generating scenario definitions...")
 scenario_df = pd.DataFrame([
     {"scenario_name": "ncca_only", "filter_type": "market_segment", "filter_value": "NCCA", "include": True},
     {"scenario_name": "ncca_plus_imports", "filter_type": "market_segment", "filter_value": "NCCA", "include": True},
@@ -305,7 +305,7 @@ scenario_df = pd.DataFrame([
 ])
 scenario_spark = spark.createDataFrame(scenario_df)
 write_lakehouse_table(scenario_spark, source_lakehouse_id, "scenario_definitions", mode="overwrite")
-print(f"  scenario_definitions: {len(scenario_df)} rows")
+logger.info(f"  scenario_definitions: {len(scenario_df)} rows")
 
 # ── Summary ─────────────────────────────────────────────────────
 total_rows = (len(orders_df) + len(shipments_df) + len(prod_history_df) +
@@ -313,12 +313,12 @@ total_rows = (len(orders_df) + len(shipments_df) + len(prod_history_df) +
               len(signal_df) + len(scenario_df) + len(skus) + N_PLANTS +
               N_CUSTOMERS + N_MARKETS + N_LINES)
 
-print(f"\n{'='*60}")
-print(f"[test_data] COMPLETE -- {total_rows:,} total rows across all tables")
-print(f"  Date range: {dates[0].date()} to {dates[-1].date()} ({HISTORY_MONTHS} months)")
-print(f"  SKUs: {N_SKUS} ({len(sku_groups)} groups)")
-print(f"  Plants: {N_PLANTS}, Lines: {N_LINES}")
-print(f"  Customers: {N_CUSTOMERS}, Markets: {N_MARKETS}")
-print(f"  Source lakehouse: {source_lakehouse_id}")
-print(f"{'='*60}")
-print(f"\nNext: Run 01_ingest_sources with source_lakehouse_id={source_lakehouse_id}")
+logger.info(f"\n{'='*60}")
+logger.info(f"[test_data] COMPLETE -- {total_rows:,} total rows across all tables")
+logger.info(f"  Date range: {dates[0].date()} to {dates[-1].date()} ({HISTORY_MONTHS} months)")
+logger.info(f"  SKUs: {N_SKUS} ({len(sku_groups)} groups)")
+logger.info(f"  Plants: {N_PLANTS}, Lines: {N_LINES}")
+logger.info(f"  Customers: {N_CUSTOMERS}, Markets: {N_MARKETS}")
+logger.info(f"  Source lakehouse: {source_lakehouse_id}")
+logger.info(f"{'='*60}")
+logger.info(f"\nNext: Run 01_ingest_sources with source_lakehouse_id={source_lakehouse_id}")

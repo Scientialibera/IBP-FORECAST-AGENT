@@ -26,23 +26,23 @@ line_id_column = cfg("line_id_column")
 if not gold_lakehouse_id or not bronze_lakehouse_id:
     raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
 
-print("[capacity] Loading latest forecast from gold.")
+logger.info("[capacity] Loading latest forecast from gold.")
 forecast_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
 
 consensus = forecast_spark.filter(forecast_spark.version_type == "consensus")
 if consensus.count() == 0:
-    print("[capacity] No consensus found, using latest system forecast.")
+    logger.warning("[capacity] No consensus found, using latest system forecast.")
     consensus = forecast_spark.filter(forecast_spark.version_type == "system")
 
 forecast_pdf = consensus.toPandas()
 if forecast_pdf.empty:
-    print("[capacity] No forecast data. Exiting.")
+    logger.info("[capacity] No forecast data. Exiting.")
 else:
     latest_vid = forecast_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
     forecast_pdf = forecast_pdf[forecast_pdf["version_id"] == latest_vid]
-    print(f"[capacity] Using version {latest_vid[:8]}... ({len(forecast_pdf)} rows)")
+    logger.info(f"[capacity] Using version {latest_vid[:8]}... ({len(forecast_pdf)} rows)")
 
-    print("[capacity] Loading production history from bronze.")
+    logger.info("[capacity] Loading production history from bronze.")
     prod_spark = read_lakehouse_table(spark, bronze_lakehouse_id, production_table)
     prod_pdf = prod_spark.toPandas()
 
@@ -55,7 +55,7 @@ else:
         sku_column=sku_col, date_column="period_date",
         rolling_months=rolling_months,
     )
-    print(f"[capacity] Computed rolling averages for {len(prod_avgs)} plant/sku/line combos")
+    logger.info(f"[capacity] Computed rolling averages for {len(prod_avgs)} plant/sku/line combos")
 
     if "final_forecast_tons" in forecast_pdf.columns:
         forecast_pdf["forecast_tons"] = forecast_pdf["final_forecast_tons"]
@@ -69,14 +69,14 @@ else:
 
     capacity_spark = spark.createDataFrame(capacity_df)
     write_lakehouse_table(capacity_spark, gold_lakehouse_id, capacity_output_table, mode="overwrite")
-    print(f"[capacity] Wrote {len(capacity_df)} rows to gold.{capacity_output_table}")
+    logger.info(f"[capacity] Wrote {len(capacity_df)} rows to gold.{capacity_output_table}")
 
     plant_summary = capacity_df.groupby(plant_col).agg(
         total_tons=("forecast_tons", "sum"),
         total_lf=("lineal_feet", "sum"),
         total_hours=("production_hours", "sum"),
     ).reset_index()
-    print("\n[capacity] Plant Summary:")
-    print(plant_summary.to_string(index=False))
+    logger.info("\n[capacity] Plant Summary:")
+    logger.info("\n%s", plant_summary.to_string(index=False))
 
-print("\n[capacity] Complete.")
+logger.info("\n[capacity] Complete.")

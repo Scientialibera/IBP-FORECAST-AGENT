@@ -19,22 +19,22 @@ reporting_table = cfg("reporting_table")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 
-print("[reporting] Copying dimension tables (master_sku, master_plant) to gold for semantic model...")
+logger.info("[reporting] Copying dimension tables (master_sku, master_plant) to gold for semantic model...")
 for dim_table in ["master_sku", "master_plant"]:
     try:
         dim_df = read_lakehouse_table(spark, bronze_lakehouse_id, dim_table)
         write_lakehouse_table(dim_df, gold_lakehouse_id, dim_table, mode="overwrite")
-        print(f"  {dim_table}: {dim_df.count()} rows copied to gold")
+        logger.info(f"  {dim_table}: {dim_df.count()} rows copied to gold")
     except Exception as e:
-        print(f"  {dim_table}: WARN - {e}")
+        logger.warning(f"  {dim_table}: WARN - {e}")
 
-print("[reporting] Building unified actuals-vs-forecast reporting view.")
+logger.info("[reporting] Building unified actuals-vs-forecast reporting view.")
 
 fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
-print(f"[reporting] Forecast versions: {len(fc_df)} rows")
+logger.info(f"[reporting] Forecast versions: {len(fc_df)} rows")
 
 actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders").toPandas()
-print(f"[reporting] Actuals (orders): {len(actuals_df)} rows")
+logger.info(f"[reporting] Actuals (orders): {len(actuals_df)} rows")
 
 if "period_date" in actuals_df.columns and "period" not in actuals_df.columns:
     actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period("M").astype(str)
@@ -79,10 +79,10 @@ reporting["is_future"] = reporting["actual_tons"].isna() & reporting["forecast_t
 reporting["snapshot_date"] = datetime.utcnow().strftime("%Y-%m-%d")
 
 write_lakehouse_table(spark.createDataFrame(reporting), gold_lakehouse_id, reporting_table, mode="overwrite")
-print(f"[reporting] Wrote {len(reporting)} reporting rows to gold.{reporting_table}")
+logger.info(f"[reporting] Wrote {len(reporting)} reporting rows to gold.{reporting_table}")
 
 future_count = reporting["is_future"].sum()
 historical_count = (~reporting["is_future"]).sum()
-print(f"  Historical (actual+forecast): {historical_count}")
-print(f"  Future (forecast only):       {future_count}")
-print("[reporting] Complete.")
+logger.info(f"  Historical (actual+forecast): {historical_count}")
+logger.info(f"  Future (forecast only):       {future_count}")
+logger.info("[reporting] Complete.")

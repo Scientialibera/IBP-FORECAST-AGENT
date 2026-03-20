@@ -34,67 +34,67 @@ var_ic = cfg("var_ic") or "aic"
 if not silver_lakehouse_id or not gold_lakehouse_id:
     raise ValueError("silver_lakehouse_id and gold_lakehouse_id are required.")
 
-print("[score] Loading feature table from silver.")
+logger.info("[score] Loading feature table from silver.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
+logger.info(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
 
 all_forecasts = []
 
 # SARIMA
-print("[score] Forecasting with SARIMA...")
+logger.info("[score] Forecasting with SARIMA...")
 try:
     sarima_fc = forecast_sarima_forward(pdf, date_column, grain_columns, target_column,
                                         forecast_horizon, sarima_order, sarima_seasonal_order,
                                         experiment_name=experiment_name)
     if not sarima_fc.empty:
         all_forecasts.append(sarima_fc)
-        print(f"[score] SARIMA: {len(sarima_fc)} forecast rows")
+        logger.info(f"[score] SARIMA: {len(sarima_fc)} forecast rows")
 except Exception as e:
-    print(f"[score] SARIMA failed: {e}")
+    logger.error(f"[score] SARIMA failed: {e}")
 
 # Prophet
-print("[score] Forecasting with Prophet...")
+logger.info("[score] Forecasting with Prophet...")
 try:
     prophet_fc = forecast_prophet_forward(pdf, date_column, grain_columns, target_column,
                                           forecast_horizon, prophet_yearly, prophet_weekly, prophet_cp,
                                           experiment_name=experiment_name)
     if not prophet_fc.empty:
         all_forecasts.append(prophet_fc)
-        print(f"[score] Prophet: {len(prophet_fc)} forecast rows")
+        logger.info(f"[score] Prophet: {len(prophet_fc)} forecast rows")
 except Exception as e:
-    print(f"[score] Prophet failed: {e}")
+    logger.error(f"[score] Prophet failed: {e}")
 
 # VAR
-print("[score] Forecasting with VAR...")
+logger.info("[score] Forecasting with VAR...")
 try:
     var_fc = forecast_var_forward(pdf, date_column, grain_columns, target_column,
                                   feature_columns, forecast_horizon, var_maxlags, var_ic)
     if not var_fc.empty:
         all_forecasts.append(var_fc)
-        print(f"[score] VAR: {len(var_fc)} forecast rows")
+        logger.info(f"[score] VAR: {len(var_fc)} forecast rows")
 except Exception as e:
-    print(f"[score] VAR failed: {e}")
+    logger.error(f"[score] VAR failed: {e}")
 
 # Exponential Smoothing
-print("[score] Forecasting with Exp Smoothing...")
+logger.info("[score] Forecasting with Exp Smoothing...")
 try:
     ets_fc = forecast_ets_forward(pdf, date_column, grain_columns, target_column,
                                    forecast_horizon, ets_trend, ets_seasonal, ets_seasonal_periods,
                                    experiment_name=experiment_name)
     if not ets_fc.empty:
         all_forecasts.append(ets_fc)
-        print(f"[score] Exp Smoothing: {len(ets_fc)} forecast rows")
+        logger.info(f"[score] Exp Smoothing: {len(ets_fc)} forecast rows")
 except Exception as e:
-    print(f"[score] Exp Smoothing failed: {e}")
+    logger.error(f"[score] Exp Smoothing failed: {e}")
 
 # Combine and write raw forecasts to silver (pre-versioning)
 if all_forecasts:
     combined = pd.concat(all_forecasts, ignore_index=True)
     combined_spark = spark.createDataFrame(combined)
     write_lakehouse_table(combined_spark, silver_lakehouse_id, "raw_forecasts", mode="overwrite")
-    print(f"[score] Wrote {len(combined)} raw forecast rows to silver.raw_forecasts")
+    logger.info(f"[score] Wrote {len(combined)} raw forecast rows to silver.raw_forecasts")
 else:
-    print("[score] WARNING: No forecasts produced.")
+    logger.warning("[score] WARNING: No forecasts produced.")
 
-print("[score] Complete.")
+logger.info("[score] Complete.")

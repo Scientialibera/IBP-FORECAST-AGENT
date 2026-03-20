@@ -22,7 +22,7 @@ grain_columns = cfg("grain_columns")
 if not gold_lakehouse_id or not bronze_lakehouse_id:
     raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
 
-print("[inventory] Loading forecast.")
+logger.info("[inventory] Loading forecast.")
 system_pdf = get_latest_system_version(spark, gold_lakehouse_id, forecast_table)
 
 forecast_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
@@ -34,14 +34,14 @@ else:
     forecast_pdf = system_pdf
 
 if forecast_pdf.empty:
-    print("[inventory] No forecast data. Exiting.")
+    logger.info("[inventory] No forecast data. Exiting.")
 else:
-    print("[inventory] Loading finished goods inventory.")
+    logger.info("[inventory] Loading finished goods inventory.")
     try:
         inv_spark = read_lakehouse_table(spark, bronze_lakehouse_id, inventory_table)
         inv_pdf = inv_spark.toPandas()
     except Exception:
-        print("[inventory] No inventory table found. Exiting.")
+        logger.warning("[inventory] No inventory table found. Exiting.")
         inv_pdf = None
 
     if inv_pdf is not None and not inv_pdf.empty:
@@ -84,17 +84,17 @@ else:
 
         align_spark = spark.createDataFrame(alignment)
         write_lakehouse_table(align_spark, gold_lakehouse_id, "inventory_alignment", mode="overwrite")
-        print(f"[inventory] Wrote {len(alignment)} alignment rows")
+        logger.info(f"[inventory] Wrote {len(alignment)} alignment rows")
 
         n_risk = (alignment["risk_flag"] == "stock_out_risk").sum()
         n_over = (alignment["risk_flag"] == "overbuild").sum()
         n_healthy = (alignment["risk_flag"] == "healthy").sum()
         total_excess = alignment["excess_tons"].sum()
         total_short = alignment["shortfall_tons"].sum()
-        print(f"\n[inventory] Risk Summary:")
-        print(f"  Stock-out risk: {n_risk} items")
-        print(f"  Overbuild: {n_over} items ({total_excess:,.0f} excess tons)")
-        print(f"  Healthy: {n_healthy} items")
-        print(f"  Total shortfall: {total_short:,.0f} tons")
+        logger.info(f"\n[inventory] Risk Summary:")
+        logger.info(f"  Stock-out risk: {n_risk} items")
+        logger.info(f"  Overbuild: {n_over} items ({total_excess:,.0f} excess tons)")
+        logger.info(f"  Healthy: {n_healthy} items")
+        logger.info(f"  Total shortfall: {total_short:,.0f} tons")
 
-print("[inventory] Complete.")
+logger.info("[inventory] Complete.")

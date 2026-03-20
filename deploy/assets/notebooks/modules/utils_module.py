@@ -1,12 +1,13 @@
 # Fabric Notebook -- Module
 # utils_module.py -- Metrics, time splits, MLflow helpers
 
-import time
-import re
 import numpy as np
 import pandas as pd
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
+import logging
+
+logger = logging.getLogger("ibp")
 
 
 def compute_metrics(y_true, y_pred) -> dict:
@@ -50,52 +51,16 @@ def current_snapshot_month() -> str:
     return datetime.utcnow().strftime("%Y-%m")
 
 
-def _parse_blocked_until(error_msg: str) -> float:
-    """Extract seconds to wait from Fabric 429 'blocked until' message."""
-    match = re.search(r"until:\s*(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s*(AM|PM)?)\s*\(UTC\)", str(error_msg))
-    if match:
-        try:
-            ts_str = match.group(1).strip()
-            for fmt in ("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y %H:%M:%S"):
-                try:
-                    blocked_until = datetime.strptime(ts_str, fmt).replace(tzinfo=timezone.utc)
-                    wait = (blocked_until - datetime.now(timezone.utc)).total_seconds()
-                    return max(wait + 2, 0)
-                except ValueError:
-                    continue
-        except Exception:
-            pass
-    return 0
-
-
-def _mlflow_with_retry(fn, max_attempts: int = 3, base_wait: float = 5):
-    """Call *fn* with retry on Fabric 429 rate limits."""
-    for attempt in range(max_attempts):
-        try:
-            return fn()
-        except Exception as e:
-            err_str = str(e)
-            if "429" not in err_str and "RequestBlocked" not in err_str:
-                raise
-            wait = _parse_blocked_until(err_str)
-            if wait <= 0:
-                wait = base_wait * (2 ** attempt)
-            print(f"[mlflow] Rate-limited (429), waiting {wait:.0f}s before retry {attempt + 1}/{max_attempts}...")
-            time.sleep(wait)
-    return fn()
-
-
 def log_metrics_to_mlflow(metrics: dict, prefix: str = "") -> None:
-    """Log metrics dict to active MLflow run (rate-limit aware)."""
+    """Log metrics dict to active MLflow run."""
     try:
         import mlflow
-        batch = {(f"{prefix}_{k}" if prefix else k): v for k, v in metrics.items() if v is not None}
-        def _log():
-            for name, val in batch.items():
-                mlflow.log_metric(name, val)
-        _mlflow_with_retry(_log)
+        for k, v in metrics.items():
+            if v is not None:
+                name = f"{prefix}_{k}" if prefix else k
+                mlflow.log_metric(name, v)
     except Exception as e:
-        print(f"[mlflow] Warning: could not log metrics: {e}")
+        logger.warning(f"[mlflow] Warning: could not log metrics: {e}")
 
 
 def ensure_experiment(experiment_name: str) -> None:
@@ -103,10 +68,10 @@ def ensure_experiment(experiment_name: str) -> None:
     try:
         import mlflow
         mlflow.autolog(disable=True)
-        def _attach():
-            exp = mlflow.get_experiment_by_name(experiment_name)
-            if exp:
-                mlflow.set_experiment(experiment_id=exp.experiment_id)
-        _mlflow_with_retry(_attach)
+        exp = mlflow.get_experiment_by_name(experiment_name)
+        if exp:
+            mlflow.set_experiment(experiment_id=exp.experiment_id)
+        # If not found, skip -- deploy script should have pre-created it in the right folder.
+        # Do NOT call set_experiment(name) as that creates at workspace root.
     except Exception as e:
-        print(f"[mlflow] Warning: could not set experiment '{experiment_name}': {e}")
+        logger.warning(f"[mlflow] Warning: could not set experiment '{experiment_name}': {e}")

@@ -1,0 +1,335 @@
+{
+  "name": "pl_ibp_score",
+  "properties": {
+    "activities": [
+      {
+        "name": "05_score_forecast",
+        "type": "TridentNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_05_score_forecast}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            },
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "06_version_snapshot",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "05_score_forecast",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_06_version_snapshot}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            },
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "07_demand_to_capacity",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "06_version_snapshot",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_07_demand_to_capacity}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "08_sales_overrides",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "06_version_snapshot",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_08_sales_overrides}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "09_market_adjustments",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "08_sales_overrides",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_09_market_adjustments}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "10_consensus_build",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "07_demand_to_capacity",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "09_market_adjustments",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_10_consensus_build}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "11_accuracy_tracking",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "10_consensus_build",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_11_accuracy_tracking}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "12_aggregate_gold",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "10_consensus_build",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_12_aggregate_gold}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "13_budget_comparison",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "10_consensus_build",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_13_budget_comparison}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "14_build_reporting_view",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "11_accuracy_tracking",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "12_aggregate_gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "13_budget_comparison",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_14_build_reporting_view}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "bronze_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{BRONZE_LH}}"
+      },
+      "silver_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{SILVER_LH}}"
+      },
+      "gold_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{GOLD_LH}}"
+      }
+    },
+    "annotations": []
+  }
+}

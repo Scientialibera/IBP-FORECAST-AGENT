@@ -25,10 +25,10 @@ min_series_length = cfg("min_series_length")
 if not silver_lakehouse_id:
     raise ValueError("silver_lakehouse_id is required.")
 
-print("[exp_smoothing] Loading feature table.")
+logger.info("[exp_smoothing] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[exp_smoothing] Loaded {len(pdf)} rows.")
+logger.info(f"[exp_smoothing] Loaded {len(pdf)} rows.")
 
 results_df, agg_metrics = train_exp_smoothing_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -42,4 +42,4 @@ if not results_df.empty:
     preds_spark = spark.createDataFrame(results_df)
     write_lakehouse_table(preds_spark, silver_lakehouse_id, "exp_smoothing_predictions", mode="overwrite")
 
-print("[exp_smoothing] Complete.")
+logger.info("[exp_smoothing] Complete.")

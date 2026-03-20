@@ -26,15 +26,15 @@ xyz_y_threshold = float(cfg("xyz_cv_threshold_y"))
 
 enabled = True
 if not enabled:
-    print("[sku_class] Disabled in config. Set sku_classification.enabled = true to run.")
+    logger.info("[sku_class] Disabled in config. Set sku_classification.enabled = true to run.")
 else:
-    print("[sku_class] Loading feature table.")
+    logger.info("[sku_class] Loading feature table.")
     feature_spark = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
     feature_pdf = feature_spark.toPandas()
 
     sku_col = "sku_id"
 
-    print("[sku_class] Computing ABC classification...")
+    logger.info("[sku_class] Computing ABC classification...")
     sku_volume = feature_pdf.groupby(sku_col)[target_column].sum().reset_index()
     sku_volume.columns = [sku_col, "total_volume"]
     sku_volume = sku_volume.sort_values("total_volume", ascending=False)
@@ -53,7 +53,7 @@ else:
         {"A": "runner", "B": "repeater", "C": "stranger"}
     )
 
-    print("[sku_class] Computing XYZ classification...")
+    logger.info("[sku_class] Computing XYZ classification...")
     sku_cv = feature_pdf.groupby(sku_col)[target_column].agg(["mean", "std"]).reset_index()
     sku_cv.columns = [sku_col, "demand_mean", "demand_std"]
     sku_cv["cv"] = sku_cv["demand_std"] / sku_cv["demand_mean"].replace(0, np.nan)
@@ -80,13 +80,13 @@ else:
 
     class_spark = spark.createDataFrame(sku_class)
     write_lakehouse_table(class_spark, gold_lakehouse_id, sku_output_table, mode="overwrite")
-    print(f"[sku_class] Wrote {len(sku_class)} SKU classifications")
+    logger.info(f"[sku_class] Wrote {len(sku_class)} SKU classifications")
 
-    print("\n[sku_class] ABC Distribution:")
-    print(sku_class["abc_class"].value_counts().to_string())
-    print("\n[sku_class] XYZ Distribution:")
-    print(sku_class["xyz_class"].value_counts().to_string())
-    print("\n[sku_class] Combined (top):")
-    print(sku_class["combined_class"].value_counts().head(9).to_string())
+    logger.info("\n[sku_class] ABC Distribution:")
+    logger.info("\n%s", sku_class["abc_class"].value_counts().to_string())
+    logger.info("\n[sku_class] XYZ Distribution:")
+    logger.info("\n%s", sku_class["xyz_class"].value_counts().to_string())
+    logger.info("\n[sku_class] Combined (top):")
+    logger.info("\n%s", sku_class["combined_class"].value_counts().head(9).to_string())
 
-print("[sku_class] Complete.")
+logger.info("[sku_class] Complete.")

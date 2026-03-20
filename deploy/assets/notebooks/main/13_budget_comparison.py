@@ -24,27 +24,27 @@ hierarchy_levels = cfg("hierarchy_levels")
 if not gold_lakehouse_id or not bronze_lakehouse_id:
     raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
 
-print("[budget] Loading consensus forecast.")
+logger.info("[budget] Loading consensus forecast.")
 forecast_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
 consensus = forecast_spark.filter(F.col("version_type") == "consensus")
 
 if consensus.count() == 0:
-    print("[budget] No consensus forecast. Using system baseline.")
+    logger.info("[budget] No consensus forecast. Using system baseline.")
     consensus = forecast_spark.filter(F.col("version_type") == "system")
 
 consensus_pdf = consensus.toPandas()
 if consensus_pdf.empty:
-    print("[budget] No forecast data. Exiting.")
+    logger.info("[budget] No forecast data. Exiting.")
 else:
     latest_vid = consensus_pdf.sort_values("created_at", ascending=False)["version_id"].iloc[0]
     consensus_pdf = consensus_pdf[consensus_pdf["version_id"] == latest_vid]
 
-    print("[budget] Loading budget volumes.")
+    logger.info("[budget] Loading budget volumes.")
     try:
         budget_spark = read_lakehouse_table(spark, bronze_lakehouse_id, budget_table)
         budget_pdf = budget_spark.toPandas()
     except Exception:
-        print("[budget] No budget_volumes table found. Exiting.")
+        logger.warning("[budget] No budget_volumes table found. Exiting.")
         budget_pdf = None
 
     if budget_pdf is not None and not budget_pdf.empty:
@@ -88,10 +88,10 @@ else:
             table_name = f"budget_comparison_{level_label}"
             comp_spark = spark.createDataFrame(merged)
             write_lakehouse_table(comp_spark, gold_lakehouse_id, table_name, mode="overwrite")
-            print(f"[budget] {table_name}: {len(merged)} rows")
+            logger.info(f"[budget] {table_name}: {len(merged)} rows")
 
             n_over = (merged["flag"] == "over_forecast").sum()
             n_under = (merged["flag"] == "under_forecast").sum()
-            print(f"[budget]   Over: {n_over}, Under: {n_under}, On-track: {len(merged) - n_over - n_under}")
+            logger.info(f"[budget]   Over: {n_over}, Under: {n_under}, On-track: {len(merged) - n_over - n_under}")
 
-print("[budget] Complete.")
+logger.info("[budget] Complete.")

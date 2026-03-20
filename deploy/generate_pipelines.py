@@ -53,6 +53,11 @@ def nb_activity(name: str, notebook_name: str, params: dict, depends_on: list[st
     }
 
 
+def pl_id(name: str) -> str:
+    """Placeholder for a child pipeline item ID, replaced at deploy time."""
+    return f"{{{{PL_{name}}}}}"
+
+
 def exec_pipeline_activity(name: str, pipeline_name: str, params: dict,
                            depends_on: list[str] | None = None):
     dep = []
@@ -65,7 +70,7 @@ def exec_pipeline_activity(name: str, pipeline_name: str, params: dict,
         "dependsOn": dep,
         "typeProperties": {
             "pipeline": {
-                "referenceName": pipeline_name,
+                "referenceName": pl_id(pipeline_name),
                 "type": "PipelineReference",
             },
             "waitOnCompletion": True,

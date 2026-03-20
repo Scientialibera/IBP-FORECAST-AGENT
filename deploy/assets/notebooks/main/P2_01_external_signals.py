@@ -22,12 +22,12 @@ signals_table = cfg("signals_table")
 
 enabled = True
 if not enabled:
-    print("[external_signals] Disabled in config. Set external_signals.enabled = true to run.")
+    logger.info("[external_signals] Disabled in config. Set external_signals.enabled = true to run.")
 else:
-    print("[external_signals] Loading external signals from bronze.")
+    logger.info("[external_signals] Loading external signals from bronze.")
     signals_spark = read_lakehouse_table(spark, bronze_lakehouse_id, signals_table)
     signals_pdf = signals_spark.toPandas()
-    print(f"[external_signals] Loaded {len(signals_pdf)} signal rows")
+    logger.info(f"[external_signals] Loaded {len(signals_pdf)} signal rows")
 
     feature_spark = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
     feature_pdf = feature_spark.toPandas()
@@ -38,9 +38,9 @@ else:
         enriched = feature_pdf.merge(signals_pdf, on="period", how="left")
     else:
         enriched = feature_pdf.copy()
-        print("[external_signals] WARNING: No 'period' column in signals table")
+        logger.warning("[external_signals] WARNING: No 'period' column in signals table")
 
-    print("[external_signals] Computing signal correlations per grain...")
+    logger.info("[external_signals] Computing signal correlations per grain...")
     importance_records = []
 
     for grain_key, group in enriched.groupby(grain_columns):
@@ -66,13 +66,13 @@ else:
 
         imp_spark = spark.createDataFrame(imp_df)
         write_lakehouse_table(imp_spark, gold_lakehouse_id, "signal_importance", mode="overwrite")
-        print(f"[external_signals] Wrote {len(imp_df)} importance rows")
+        logger.info(f"[external_signals] Wrote {len(imp_df)} importance rows")
 
-        print("\n[external_signals] Top 10 signal-grain correlations:")
-        print(imp_df.head(10)[["signal"] + grain_columns + ["correlation"]].to_string(index=False))
+        logger.info("\n[external_signals] Top 10 signal-grain correlations:")
+        logger.info("\n%s", imp_df.head(10)[["signal"] + grain_columns + ["correlation"]].to_string(index=False))
 
     enriched_spark = spark.createDataFrame(enriched)
     write_lakehouse_table(enriched_spark, silver_lakehouse_id, "feature_table_enriched", mode="overwrite")
-    print(f"[external_signals] Wrote enriched feature table ({len(enriched)} rows)")
+    logger.info(f"[external_signals] Wrote enriched feature table ({len(enriched)} rows)")
 
-print("[external_signals] Complete.")
+logger.info("[external_signals] Complete.")

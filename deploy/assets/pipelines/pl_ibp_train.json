@@ -1,0 +1,224 @@
+{
+  "name": "pl_ibp_train",
+  "properties": {
+    "activities": [
+      {
+        "name": "01_ingest_sources",
+        "type": "TridentNotebook",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_01_ingest_sources}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "source_lakehouse_id": {
+              "value": "@pipeline().parameters.source_lakehouse_id",
+              "type": "string"
+            },
+            "landing_lakehouse_id": {
+              "value": "@pipeline().parameters.landing_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "02_transform_bronze",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "01_ingest_sources",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_02_transform_bronze}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "landing_lakehouse_id": {
+              "value": "@pipeline().parameters.landing_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "03_feature_engineering",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "02_transform_bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_03_feature_engineering}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            },
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "04_train_sarima",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_feature_engineering",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_04_train_sarima}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "04_train_prophet",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_feature_engineering",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_04_train_prophet}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "04_train_var",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_feature_engineering",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_04_train_var}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "04_train_exp_smoothing",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_feature_engineering",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_04_train_exp_smoothing}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "source_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{SOURCE_LH}}"
+      },
+      "landing_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{LANDING_LH}}"
+      },
+      "bronze_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{BRONZE_LH}}"
+      },
+      "silver_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{SILVER_LH}}"
+      },
+      "gold_lakehouse_id": {
+        "type": "string",
+        "defaultValue": "{{GOLD_LH}}"
+      }
+    },
+    "annotations": []
+  }
+}

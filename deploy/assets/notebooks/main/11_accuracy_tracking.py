@@ -10,6 +10,7 @@ bronze_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/feature_engineering_module
 # %run ../modules/accuracy_module
 
 forecast_table = cfg("output_table")
@@ -23,26 +24,29 @@ if not gold_lakehouse_id or not bronze_lakehouse_id:
     raise ValueError("gold_lakehouse_id and bronze_lakehouse_id are required.")
 
 # Load prior system forecasts
-print("[accuracy] Loading forecast versions from gold.")
+logger.info("[accuracy] Loading forecast versions from gold.")
 forecast_spark = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table)
 system_forecasts = forecast_spark.filter(forecast_spark.version_type == "system").toPandas()
 
 if system_forecasts.empty:
-    print("[accuracy] No system forecasts to evaluate.")
+    logger.info("[accuracy] No system forecasts to evaluate.")
 else:
-    print(f"[accuracy] {len(system_forecasts)} system forecast rows across {system_forecasts['snapshot_month'].nunique()} snapshots")
+    logger.info(f"[accuracy] {len(system_forecasts)} system forecast rows across {system_forecasts['snapshot_month'].nunique()} snapshots")
 
     # Load actuals from bronze (primary source table)
     primary_table = source_tables[0] if source_tables else "orders"
-    print(f"[accuracy] Loading actuals from bronze.{primary_table}")
+    logger.info(f"[accuracy] Loading actuals from bronze.{primary_table}")
     actuals_spark = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table)
     actuals_pdf = actuals_spark.toPandas()
 
     # Aggregate actuals to grain + period
-    from feature_engineering_module import aggregate_to_grain
     actuals_agg = aggregate_to_grain(
         actuals_pdf, cfg("date_column"), grain_columns, target_column, [], "M"
     )
+
+    # Normalize period columns to strings so the merge doesn't choke on type mismatch
+    system_forecasts["period"] = pd.to_datetime(system_forecasts["period"]).dt.strftime("%Y-%m-%d")
+    actuals_agg["period"] = pd.to_datetime(actuals_agg["period"]).dt.strftime("%Y-%m-%d")
 
     # Evaluate accuracy
     accuracy_df = evaluate_forecast_accuracy(
@@ -54,9 +58,9 @@ else:
     )
 
     if accuracy_df.empty:
-        print("[accuracy] No overlapping periods between forecasts and actuals.")
+        logger.info("[accuracy] No overlapping periods between forecasts and actuals.")
     else:
-        print(f"[accuracy] Evaluated {len(accuracy_df)} grain/version combinations")
+        logger.info(f"[accuracy] Evaluated {len(accuracy_df)} grain/version combinations")
 
         # Write accuracy results
         acc_spark = spark.createDataFrame(accuracy_df)
@@ -70,20 +74,20 @@ else:
                     level_spark = spark.createDataFrame(level_agg)
                     write_lakehouse_table(level_spark, gold_lakehouse_id,
                                          f"accuracy_by_{level_col}", mode="overwrite")
-                    print(f"[accuracy] Wrote accuracy_by_{level_col}")
+                    logger.info(f"[accuracy] Wrote accuracy_by_{level_col}")
 
         # Model recommendations per grain
         recommendations = recommend_model_by_grain(accuracy_df, grain_columns, metric="mape")
         if not recommendations.empty:
             rec_spark = spark.createDataFrame(recommendations)
             write_lakehouse_table(rec_spark, gold_lakehouse_id, "model_recommendations", mode="overwrite")
-            print(f"[accuracy] Model recommendations: {len(recommendations)} grains")
+            logger.info(f"[accuracy] Model recommendations: {len(recommendations)} grains")
 
         # Summary
-        print("\n[accuracy] Overall by model:")
+        logger.info("\n[accuracy] Overall by model:")
         for model, grp in accuracy_df.groupby("model_type"):
             avg_mape = grp["mape"].mean()
             avg_bias = grp["bias"].mean()
-            print(f"  {model}: MAPE={avg_mape:.2f}%, Bias={avg_bias:.2f}")
+            logger.info(f"  {model}: MAPE={avg_mape:.2f}%, Bias={avg_bias:.2f}")
 
-print("[accuracy] Complete.")
+logger.info("[accuracy] Complete.")
