@@ -162,6 +162,9 @@ repeater_threshold    = 0.95
 [semantic_model]
 name = "IBP Forecast Model"
 reporting_table = "reporting_actuals_vs_forecast"
+refresh_schedule_enabled = true
+refresh_schedule_time    = "06:00"
+refresh_schedule_timezone = "UTC"
 
 # ── Test Data Generation ─────────────────────────────────────────
 

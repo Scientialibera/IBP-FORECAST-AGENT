@@ -246,6 +246,8 @@ Typical workflow:
 
 Notebook `15_refresh_semantic_model` creates or updates a DirectLake semantic model over the gold lakehouse via the Fabric REST API, then triggers a full refresh. It is **not** created at infrastructure deployment -- only the `semantic_models/` folder is created by the deploy script. The model itself is created/updated by the notebook when triggered by the `pl_ibp_refresh_model` pipeline.
 
+The deploy script also configures a **scheduled refresh** for the semantic model (default: daily at 06:00 UTC). This is controlled via `deploy.config.toml` under `[semantic_model]`.
+
 **Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Master SKU, Master Plant, Capacity Translation
 
 **Pre-built DAX Measures**:
@@ -431,6 +433,9 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `reporting_table` | `"reporting_actuals_vs_forecast"` | Unified reporting table in gold |
 | `semantic_model_name` | `"IBP Forecast Model"` | Name of the DirectLake semantic model |
+| `refresh_schedule_enabled` | `true` | Enable daily scheduled refresh for the semantic model |
+| `refresh_schedule_time` | `"06:00"` | Time of day for scheduled refresh (24h format) |
+| `refresh_schedule_timezone` | `"UTC"` | Timezone for the refresh schedule |
 
 ### Test Data Generation
 
@@ -514,7 +519,7 @@ Never edit files in `build/` directly -- they are overwritten on every deploymen
 pwsh ./deploy/deploy-fabric.ps1
 ```
 
-The script performs 8 idempotent steps:
+The script performs 9 idempotent steps:
 
 | Step | Description |
 |------|-------------|
@@ -526,6 +531,7 @@ The script performs 8 idempotent steps:
 | 6 | Deploy main notebooks in parallel |
 | 7 | Run `generate_pipelines.py` to produce pipeline JSON definitions |
 | 8 | Deploy 6 data pipelines into `pipelines/` folder |
+| 9 | Configure semantic model scheduled refresh (daily at configured time) |
 
 Safe to re-run -- existing items are updated, not duplicated.
 
