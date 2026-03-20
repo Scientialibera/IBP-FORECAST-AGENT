@@ -83,6 +83,40 @@ erDiagram
     }
 ```
 
+## Backtest Predictions Schema (`backtest_predictions`)
+
+Built by notebook 14 from per-model `*_predictions` tables in silver, unified into gold for the semantic model and Power BI report.
+
+```mermaid
+erDiagram
+    backtest_predictions {
+        string plant_id FK
+        string sku_id FK
+        string period "YYYY-MM-DD"
+        float actual "Actual observed value"
+        float predicted "Model predicted value"
+        string model_type "sarima | prophet | exp_smoothing"
+        float error "predicted - actual"
+        float abs_error "|error|"
+        float pct_error "abs_error / actual"
+    }
+
+    backtest_predictions }o--|| master_sku : "sku_id"
+    backtest_predictions }o--|| master_plant : "plant_id"
+
+    master_sku {
+        string sku_id PK
+        string sku_name
+        string sku_group
+    }
+
+    master_plant {
+        string plant_id PK
+        string plant_name
+        string region
+    }
+```
+
 ## Budget Comparison Schema (`budget_comparison`)
 
 ```mermaid

@@ -2,6 +2,16 @@
 
 Lakehouse-driven, AI-powered IBP (Integrated Business Planning) forecasting framework for Microsoft Fabric. Implements multi-model statistical forecasting with per-grain hyperparameter tuning, MLflow model persistence, versioned layering, demand-to-capacity translation, sales overrides, and hierarchical drill-down -- all on a medallion architecture.
 
+## Screenshots
+
+| Workspace Folder Structure | Data Pipelines |
+|---|---|
+| ![Fabric workspace folders](docs/screenshots/folders.png) | ![Data pipelines](docs/screenshots/pipelines.png) |
+
+| Semantic Model (DirectLake) | Backtest Report |
+|---|---|
+| ![Semantic model diagram](docs/screenshots/semantic_model.png) | ![Backtest actual vs predicted](docs/screenshots/report.png) |
+
 ## Architecture
 
 ```mermaid
@@ -16,8 +26,9 @@ flowchart LR
     Consensus -->|11| Accuracy[vs. Actuals]
     Consensus -->|12| Rollups[Hierarchy Drill-Down]
     Consensus -->|13| Budget[Budget Comparison]
-    Accuracy & Rollups & Budget -->|14| Reporting[Unified Reporting View]
+    Accuracy & Rollups & Budget -->|14| Reporting[Unified Reporting View<br/>+ Backtest Predictions]
     Reporting -->|15| Semantic[Semantic Model<br/>DirectLake + DAX Measures]
+    Semantic -->|16| Report[Power BI Report<br/>Actual vs Predicted]
 ```
 
 See [docs/architecture/](docs/architecture/) for detailed Mermaid diagrams.
@@ -101,6 +112,7 @@ IBP Forecast/
       ...
       14_build_reporting_view
       15_refresh_semantic_model
+      16_create_report
       P2_01 ... P2_04
     modules/
       ibp_config            ← centralized config (all non-lakehouse params)
@@ -112,11 +124,13 @@ IBP Forecast/
     pl_ibp_seed_test_data       ← generates synthetic data
     pl_ibp_train                ← ingest → bronze → features → train (4 models parallel)
     pl_ibp_score                ← score → version (CDC) → gold enrichment → reporting
-    pl_ibp_refresh_model        ← create/update DirectLake semantic model + refresh
+    pl_ibp_refresh_model        ← semantic model + backtest report (notebooks 15-16)
     pl_ibp_score_and_refresh    ← orchestrator: triggers score then refresh sequentially
     pl_ibp_phase2_advanced      ← external signals, scenarios, SKU classification, inventory
+  reports/
+    IBP Backtest - Actual vs Predicted  ← Power BI report (created by notebook 16)
   semantic_models/
-    IBP Forecast Model      ← DirectLake semantic model (created by notebook 15 at runtime)
+    IBP Forecast Model      ← DirectLake semantic model (created by notebook 15)
 ```
 
 ## Pipeline Structure
@@ -128,7 +142,7 @@ Pipelines are modular so you can train independently from scoring:
 | `pl_ibp_seed_test_data` | 1 | Generate synthetic test data (run once) |
 | `pl_ibp_train` | 7 | Ingest → Bronze → Features → Train 4 models in parallel |
 | `pl_ibp_score` | 10 | Score → Version (CDC) → Capacity/Overrides/Adjustments → Consensus → Accuracy/Rollups/Budget → Reporting |
-| `pl_ibp_refresh_model` | 1 | Create/update the DirectLake semantic model + trigger refresh |
+| `pl_ibp_refresh_model` | 2 | Create/update DirectLake semantic model + create/update Power BI backtest report |
 | `pl_ibp_score_and_refresh` | 2 | Orchestrator: runs `pl_ibp_score` then `pl_ibp_refresh_model` sequentially |
 | `pl_ibp_phase2_advanced` | 4 | External signals, scenarios, SKU classification, inventory alignment |
 
@@ -172,11 +186,12 @@ Typical workflow:
 | 13 | `13_budget_comparison` | Gold | Budget vs. forecast with flags |
 | 14 | `14_build_reporting_view` | Gold | Unified actuals-vs-forecast table + copy dimensions to gold |
 
-### Semantic Model Pipeline (`pl_ibp_refresh_model`)
+### Semantic Model + Report Pipeline (`pl_ibp_refresh_model`)
 
 | # | Notebook | Layer | Description |
 |---|----------|-------|-------------|
 | 15 | `15_refresh_semantic_model` | Gold | Create/update DirectLake semantic model via REST API + trigger refresh |
+| 16 | `16_create_report` | Gold | Create/update Power BI backtest report (actual vs predicted) via REST API |
 
 ### Phase 2 -- Advanced Capabilities (`pl_ibp_phase2_advanced`)
 
@@ -217,6 +232,7 @@ Typical workflow:
 | `budget_comparison` | Forecast vs. budget with over/under flags |
 | `aggregated_forecast` | Hierarchical roll-ups per version type |
 | `reporting_actuals_vs_forecast` | Unified view: actual tons + forecast tons + error metrics + future flag |
+| `backtest_predictions` | Union of SARIMA/Prophet/ETS backtest predictions with error metrics |
 | `scenario_forecasts` | Side-by-side scenario results |
 | `sku_classifications` | ABC/XYZ + runner/repeater/stranger |
 | `inventory_aligned_forecast` | FG inventory coverage, net requirements |
@@ -226,17 +242,29 @@ Typical workflow:
 
 Notebook `15_refresh_semantic_model` creates or updates a DirectLake semantic model over the gold lakehouse via the Fabric REST API, then triggers a full refresh. It is **not** created at infrastructure deployment -- only the `semantic_models/` folder is created by the deploy script. The model itself is created/updated by the notebook when triggered by the `pl_ibp_refresh_model` pipeline.
 
-**Tables**: Reporting Actuals vs Forecast, Forecast Versions, Consensus Forecast, Master SKU, Master Plant, Aggregated Forecast, Capacity Translation
+**Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Master SKU, Master Plant, Capacity Translation
 
 **Pre-built DAX Measures**:
-- Total Forecast Tons / Total Actual Tons
-- Total Variance
+- Total Forecast Tons / Total Actual Tons / Total Variance
 - MAPE % / Bias % / Forecast Accuracy %
-- Future Forecast Tons / Avg Forecast Tons / Consensus Total Tons
+- Future Forecast Tons / Avg Forecast Tons
+- Backtest MAPE % / Total Actual / Total Predicted
+- Total Lineal Feet / Total Production Hours
 
 **Relationships**: Fact tables → Master SKU (sku_id), Fact tables → Master Plant (plant_id)
 
-Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold so that dimension tables are co-located with fact tables for DirectLake.
+Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold, builds the unified actuals-vs-forecast table, and unions backtest prediction tables from silver into `backtest_predictions` in gold.
+
+## Backtest Report
+
+Notebook `16_create_report` creates or updates a Power BI report (PBIR-Legacy format) via the Fabric REST API and places it in the `reports/` folder. The report is bound to the semantic model and provides:
+
+- **3 slicers**: model_type, plant_id, sku_id (dropdown)
+- **5 KPI cards**: Backtest MAPE %, Avg Absolute Error, Avg % Error, Total Actual, Total Predicted
+- **Line chart**: actual vs predicted over time (sorted ascending by period)
+- **Detail table**: period, plant_id, sku_id, model_type, actual, predicted, error, abs_error, pct_error
+
+The report is idempotent -- first run creates, subsequent runs update the definition in place.
 
 ## Configuration Reference
 
@@ -474,7 +502,7 @@ The script performs 8 idempotent steps:
 | Step | Description |
 |------|-------------|
 | 1 | Create project folder (`IBP Forecast/`) |
-| 2 | Create sub-folders: `data/`, `notebooks/`, `pipelines/`, `experiments/`, `semantic_models/`, `main/`, `modules/` |
+| 2 | Create sub-folders: `data/`, `notebooks/`, `pipelines/`, `experiments/`, `semantic_models/`, `reports/`, `main/`, `modules/` |
 | 3 | Create/verify 5 lakehouses in `data/` folder + MLflow experiment in `experiments/` |
 | 4 | Run `convert_notebooks.py` to transform `assets/` → `build/` with real lakehouse bindings |
 | 5 | Deploy module notebooks in parallel |
@@ -499,7 +527,7 @@ After deployment, trigger pipelines from the Fabric UI or via the REST API:
 
 1. **`pl_ibp_seed_test_data`** -- run once to generate synthetic data
 2. **`pl_ibp_train`** -- ingest, transform, feature engineer, train 4 models
-3. **`pl_ibp_score_and_refresh`** -- score, enrich gold, build reporting view, create/update semantic model
+3. **`pl_ibp_score_and_refresh`** -- score, enrich gold, build reporting view, create/update semantic model + backtest report
 4. **`pl_ibp_phase2_advanced`** -- advanced analytics (run after Phase 1)
 
 ## Design Principles
@@ -512,4 +540,4 @@ After deployment, trigger pipelines from the Fabric UI or via the REST API:
 - **MLflow-native**: models persisted and loaded via MLflow artifacts, metrics tracked per run
 - **Per-grain tuning**: each time series gets its own optimized hyperparameters
 - **Modular pipelines**: train and score are separate pipelines so you can re-score without retraining
-- **Auditable**: every calculation is explicit with print-based logging
+- **Auditable**: every calculation is explicit with structured Python logging (`logging` module)

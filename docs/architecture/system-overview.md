@@ -22,6 +22,7 @@ flowchart TB
             features["Feature Table"]
             prod_metrics["Production Metrics<br>(width, line speed)"]
             sku_class["SKU Classifications"]
+            backtest_preds["Backtest Predictions<br>(per-model actuals vs predicted)"]
         end
         subgraph Gold["Gold"]
             forecasts["Versioned Forecasts<br>(system / sales / consensus)"]
@@ -32,6 +33,8 @@ flowchart TB
             budget_comp["Budget Comparison + Flags"]
             scenarios["Scenario Comparisons"]
             inv_alignment["Inventory Alignment"]
+            reporting["Reporting Actuals vs Forecast"]
+            backtest_gold["Backtest Predictions<br>(unified from silver)"]
         end
     end
 
@@ -49,11 +52,17 @@ flowchart TB
         consensus["Consensus Forecast"]
     end
 
+    subgraph Presentation["Presentation Layer"]
+        semantic["DirectLake Semantic Model<br>(DAX measures + relationships)"]
+        report["Power BI Report<br>Backtest: Actual vs Predicted"]
+    end
+
     Sources --> Landing
     Landing --> Bronze
     Bronze --> Silver
     Silver --> Models
     Models --> baseline
+    Models --> backtest_preds
     baseline --> sales_adj
     sales_adj --> market_adj
     market_adj --> consensus
@@ -61,4 +70,8 @@ flowchart TB
     Silver --> Gold
     production --> prod_metrics
     prod_metrics --> capacity
+    backtest_preds --> backtest_gold
+    reporting --> semantic
+    backtest_gold --> semantic
+    semantic --> report
 ```
