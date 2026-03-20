@@ -33,6 +33,7 @@ LAKEHOUSE_MAP = {
     "13_budget_comparison":        "gold",
     "14_build_reporting_view":     "gold",
     "15_refresh_semantic_model":   "gold",
+    "16_create_report":            "gold",
     "P2_":                         "gold",
 }
 

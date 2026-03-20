@@ -21,6 +21,33 @@
             }
           }
         }
+      },
+      {
+        "name": "16_create_report",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "15_refresh_semantic_model",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_16_create_report}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
       }
     ],
     "parameters": {

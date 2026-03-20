@@ -275,6 +275,7 @@ $notebooksFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName
 $pipelinesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "pipelines"   -ParentFolderId $projectFolderId
 $experimentsFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "experiments" -ParentFolderId $projectFolderId
 $semanticFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "semantic_models" -ParentFolderId $projectFolderId
+$reportsFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "reports"          -ParentFolderId $projectFolderId
 $mainFolderId        = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"        -ParentFolderId $notebooksFolderId
 $modulesFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"     -ParentFolderId $notebooksFolderId
 
@@ -449,4 +450,5 @@ Write-Host "    notebooks/"
 Write-Host "      main/          (23 notebooks)"
 Write-Host "      modules/       (14 modules)"
 Write-Host "    pipelines/       (6 data pipelines)"
+Write-Host "    reports/         (created by notebook 16 at runtime)"
 Write-Host "    semantic_models/ (created by notebook 15 at runtime)"

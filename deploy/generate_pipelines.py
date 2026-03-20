@@ -199,12 +199,15 @@ score_acts = [
 pl_score = pipeline("pl_ibp_score", score_acts, LH_SCORE)
 
 
-# ── 4. Refresh Semantic Model Pipeline ──────────────────────────
+# ── 4. Refresh Semantic Model + Create Report Pipeline ──────────
 
 refresh_acts = [
     nb_activity("15_refresh_semantic_model", "15_refresh_semantic_model", {
         "gold_lakehouse_id": P("gold_lakehouse_id"),
     }),
+    nb_activity("16_create_report", "16_create_report", {
+        "gold_lakehouse_id": P("gold_lakehouse_id"),
+    }, depends_on=["15_refresh_semantic_model"]),
 ]
 
 pl_refresh = pipeline("pl_ibp_refresh_model", refresh_acts, LH_GOLD_ONLY)
