@@ -8,6 +8,7 @@ silver_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/tuning_module
 # %run ../modules/train_prophet_module
 
 date_column = cfg("feature_date_column")
@@ -20,11 +21,15 @@ changepoint_prior = cfg("prophet_changepoint_prior")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[prophet] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[prophet] Loaded {len(pdf)} rows.")
+print(f"[prophet] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_prophet_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -32,6 +37,8 @@ results_df, agg_metrics = train_prophet_per_grain(
     weekly_seasonality=weekly, changepoint_prior=changepoint_prior,
     test_ratio=test_split_ratio, experiment_name=experiment_name,
     model_name=f"{model_prefix}_prophet", min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:

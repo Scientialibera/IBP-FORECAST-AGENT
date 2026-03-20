@@ -148,6 +148,15 @@ phase1_acts.append(nb_activity("13_budget_comparison", "13_budget_comparison", {
     "bronze_lakehouse_id": P("bronze_lakehouse_id"),
 }, depends_on=["10_consensus_build"]))
 
+phase1_acts.append(nb_activity("14_build_reporting_view", "14_build_reporting_view", {
+    "gold_lakehouse_id":   P("gold_lakehouse_id"),
+    "bronze_lakehouse_id": P("bronze_lakehouse_id"),
+}, depends_on=["11_accuracy_tracking", "12_aggregate_gold", "13_budget_comparison"]))
+
+phase1_acts.append(nb_activity("15_create_semantic_model", "15_create_semantic_model", {
+    "gold_lakehouse_id": P("gold_lakehouse_id"),
+}, depends_on=["14_build_reporting_view"]))
+
 pl_phase1 = pipeline("pl_ibp_phase1_core", phase1_acts, LH_PARAMS)
 
 

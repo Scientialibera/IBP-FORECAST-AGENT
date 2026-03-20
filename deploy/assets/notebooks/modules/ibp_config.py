@@ -42,6 +42,12 @@ IBP_CONFIG = {
     "exp_smoothing_seasonal":         "add",
     "exp_smoothing_seasonal_periods": 12,
 
+    # ── Hyperparameter Tuning ──────────────────────────────────────
+    "tuning_enabled":       True,
+    "tuning_n_iter":        10,
+    "tuning_n_splits":      3,
+    "tuning_metric":        "rmse",
+
     # ── MLflow / Experiment Tracking ─────────────────────────────
     "experiment_name":          "ibp_demand_forecast",
     "registered_model_prefix":  "ibp_model",
@@ -89,6 +95,10 @@ IBP_CONFIG = {
     "repeater_threshold":               0.95,
     "xyz_cv_threshold_x":               0.5,
     "xyz_cv_threshold_y":               1.0,
+
+    # ── Semantic Model / Reporting ─────────────────────────────────
+    "reporting_table":      "reporting_actuals_vs_forecast",
+    "semantic_model_name":  "IBP Forecast Model",
 
     # ── Test Data Generation ─────────────────────────────────────
     "n_skus":               50,

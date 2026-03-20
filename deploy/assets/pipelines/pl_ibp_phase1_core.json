@@ -490,6 +490,76 @@
             }
           }
         }
+      },
+      {
+        "name": "14_build_reporting_view",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "11_accuracy_tracking",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "12_aggregate_gold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "13_budget_comparison",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_14_build_reporting_view}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            },
+            "bronze_lakehouse_id": {
+              "value": "@pipeline().parameters.bronze_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "15_create_semantic_model",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "14_build_reporting_view",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_15_create_semantic_model}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "gold_lakehouse_id": {
+              "value": "@pipeline().parameters.gold_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
       }
     ],
     "parameters": {

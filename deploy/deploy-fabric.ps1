@@ -273,6 +273,7 @@ $dataFolderId      = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "
 $notebooksFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "notebooks"   -ParentFolderId $projectFolderId
 $pipelinesFolderId   = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "pipelines"   -ParentFolderId $projectFolderId
 $experimentsFolderId = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "experiments" -ParentFolderId $projectFolderId
+$semanticFolderId    = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "semantic_models" -ParentFolderId $projectFolderId
 $mainFolderId        = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "main"        -ParentFolderId $notebooksFolderId
 $modulesFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"     -ParentFolderId $notebooksFolderId
 
@@ -410,9 +411,10 @@ Write-Host "  silver:  $silverId"
 Write-Host "  gold:    $goldId"
 Write-Host "`nFolder structure:" -ForegroundColor Cyan
 Write-Host "  $projectFolderName/"
-Write-Host "    data/         (5 lakehouses)"
-Write-Host "    experiments/  (MLflow experiments)"
+Write-Host "    data/            (5 lakehouses)"
+Write-Host "    experiments/     (MLflow experiments)"
 Write-Host "    notebooks/"
-Write-Host "      main/       (21 notebooks)"
-Write-Host "      modules/    (14 notebooks)"
-Write-Host "    pipelines/    (3 data pipelines)"
+Write-Host "      main/          (23 notebooks)"
+Write-Host "      modules/       (14 modules)"
+Write-Host "    pipelines/       (3 data pipelines)"
+Write-Host "    semantic_models/ (IBP Forecast Model)"

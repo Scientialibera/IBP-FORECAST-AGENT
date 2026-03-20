@@ -8,6 +8,7 @@ silver_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/tuning_module
 # %run ../modules/train_exp_smoothing_module
 
 date_column = cfg("feature_date_column")
@@ -20,11 +21,15 @@ seasonal_periods = cfg("exp_smoothing_seasonal_periods")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[ets] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[ets] Loaded {len(pdf)} rows.")
+print(f"[ets] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_exp_smoothing_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -32,6 +37,8 @@ results_df, agg_metrics = train_exp_smoothing_per_grain(
     seasonal_periods=seasonal_periods, test_ratio=test_split_ratio,
     experiment_name=experiment_name, model_name=f"{model_prefix}_ets",
     min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:

@@ -313,7 +313,7 @@ print("[features] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("04_train_sarima",
    ["silver_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "train_sarima_module"],
+   ["ibp_config", "config_module", "utils_module", "tuning_module", "train_sarima_module"],
    '''
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
@@ -324,11 +324,15 @@ sarima_seasonal_order = tuple(cfg("sarima_seasonal_order"))
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[sarima] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[sarima] Loaded {len(pdf)} rows.")
+print(f"[sarima] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_sarima_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -336,6 +340,8 @@ results_df, agg_metrics = train_sarima_per_grain(
     seasonal_order=sarima_seasonal_order, test_ratio=test_split_ratio,
     experiment_name=experiment_name, model_name=f"{model_prefix}_sarima",
     min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:
@@ -349,7 +355,7 @@ print("[sarima] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("04_train_prophet",
    ["silver_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "train_prophet_module"],
+   ["ibp_config", "config_module", "utils_module", "tuning_module", "train_prophet_module"],
    '''
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
@@ -361,11 +367,15 @@ changepoint_prior = cfg("prophet_changepoint_prior")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[prophet] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[prophet] Loaded {len(pdf)} rows.")
+print(f"[prophet] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_prophet_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -373,6 +383,8 @@ results_df, agg_metrics = train_prophet_per_grain(
     weekly_seasonality=weekly, changepoint_prior=changepoint_prior,
     test_ratio=test_split_ratio, experiment_name=experiment_name,
     model_name=f"{model_prefix}_prophet", min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:
@@ -386,7 +398,7 @@ print("[prophet] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("04_train_var",
    ["silver_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "train_var_module"],
+   ["ibp_config", "config_module", "utils_module", "tuning_module", "train_var_module"],
    '''
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
@@ -398,11 +410,15 @@ ic = cfg("var_ic")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[var] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[var] Loaded {len(pdf)} rows.")
+print(f"[var] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_var_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -410,6 +426,8 @@ results_df, agg_metrics = train_var_per_grain(
     maxlags=maxlags, ic=ic, test_ratio=test_split_ratio,
     experiment_name=experiment_name, model_name=f"{model_prefix}_var",
     min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:
@@ -423,7 +441,7 @@ print("[var] Complete.")
 # ─────────────────────────────────────────────────────────────────
 nb("04_train_exp_smoothing",
    ["silver_lakehouse_id"],
-   ["ibp_config", "config_module", "utils_module", "train_exp_smoothing_module"],
+   ["ibp_config", "config_module", "utils_module", "tuning_module", "train_exp_smoothing_module"],
    '''
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
@@ -435,11 +453,15 @@ seasonal_periods = cfg("exp_smoothing_seasonal_periods")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
 min_series_length = cfg("min_series_length")
+tuning_enabled = cfg("tuning_enabled")
+tuning_n_iter = cfg("tuning_n_iter")
+tuning_n_splits = cfg("tuning_n_splits")
+tuning_metric = cfg("tuning_metric")
 
 print("[ets] Loading feature table.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
-print(f"[ets] Loaded {len(pdf)} rows.")
+print(f"[ets] Loaded {len(pdf)} rows. Tuning: {tuning_enabled}")
 
 results_df, agg_metrics = train_exp_smoothing_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
@@ -447,6 +469,8 @@ results_df, agg_metrics = train_exp_smoothing_per_grain(
     seasonal_periods=seasonal_periods, test_ratio=test_split_ratio,
     experiment_name=experiment_name, model_name=f"{model_prefix}_ets",
     min_series_length=min_series_length,
+    tuning_enabled=tuning_enabled, tuning_n_iter=tuning_n_iter,
+    tuning_n_splits=tuning_n_splits, tuning_metric=tuning_metric,
 )
 
 if not results_df.empty:
@@ -469,50 +493,60 @@ target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")
 forecast_horizon = cfg("forecast_horizon")
+experiment_name = cfg("experiment_name")
 
 print("[score] Loading feature table from silver.")
 spark_df = read_lakehouse_table(spark, silver_lakehouse_id, "feature_table")
 pdf = spark_df.toPandas().dropna(subset=[target_column]).reset_index(drop=True)
 print(f"[score] Loaded {len(pdf)} rows. Forecasting {forecast_horizon} periods ahead.")
+print(f"[score] Loading trained models from MLflow experiment: {experiment_name}")
 
 all_forecasts = []
 
-print("[score] Forecasting with SARIMA...")
+print("[score] Forecasting with SARIMA (MLflow models)...")
 try:
     sarima_fc = forecast_sarima_forward(pdf, date_column, grain_columns, target_column,
-                                        forecast_horizon, tuple(cfg("sarima_order")), tuple(cfg("sarima_seasonal_order")))
+                                        forecast_horizon, tuple(cfg("sarima_order")),
+                                        tuple(cfg("sarima_seasonal_order")),
+                                        experiment_name=experiment_name)
     if not sarima_fc.empty:
         all_forecasts.append(sarima_fc)
         print(f"  SARIMA: {len(sarima_fc)} rows")
 except Exception as e:
     print(f"  SARIMA failed: {e}")
 
-print("[score] Forecasting with Prophet...")
+print("[score] Forecasting with Prophet (MLflow models)...")
 try:
     prophet_fc = forecast_prophet_forward(pdf, date_column, grain_columns, target_column,
                                           forecast_horizon, cfg("prophet_yearly_seasonality"),
-                                          cfg("prophet_weekly_seasonality"), cfg("prophet_changepoint_prior"))
+                                          cfg("prophet_weekly_seasonality"),
+                                          cfg("prophet_changepoint_prior"),
+                                          experiment_name=experiment_name)
     if not prophet_fc.empty:
         all_forecasts.append(prophet_fc)
         print(f"  Prophet: {len(prophet_fc)} rows")
 except Exception as e:
     print(f"  Prophet failed: {e}")
 
-print("[score] Forecasting with VAR...")
+print("[score] Forecasting with VAR (MLflow models)...")
 try:
     var_fc = forecast_var_forward(pdf, date_column, grain_columns, target_column,
-                                  feature_columns, forecast_horizon, cfg("var_maxlags"), cfg("var_ic"))
+                                  feature_columns, forecast_horizon,
+                                  cfg("var_maxlags"), cfg("var_ic"),
+                                  experiment_name=experiment_name)
     if not var_fc.empty:
         all_forecasts.append(var_fc)
         print(f"  VAR: {len(var_fc)} rows")
 except Exception as e:
     print(f"  VAR failed: {e}")
 
-print("[score] Forecasting with Exp Smoothing...")
+print("[score] Forecasting with Exp Smoothing (MLflow models)...")
 try:
     ets_fc = forecast_ets_forward(pdf, date_column, grain_columns, target_column,
                                    forecast_horizon, cfg("exp_smoothing_trend"),
-                                   cfg("exp_smoothing_seasonal"), cfg("exp_smoothing_seasonal_periods"))
+                                   cfg("exp_smoothing_seasonal"),
+                                   cfg("exp_smoothing_seasonal_periods"),
+                                   experiment_name=experiment_name)
     if not ets_fc.empty:
         all_forecasts.append(ets_fc)
         print(f"  Exp Smoothing: {len(ets_fc)} rows")
@@ -819,6 +853,256 @@ if merge_keys:
 else:
     print("[budget] No common columns for merge")
 print("[budget] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 14 - Build Reporting View (Actuals vs Forecast for Semantic Model)
+# ─────────────────────────────────────────────────────────────────
+nb("14_build_reporting_view",
+   ["gold_lakehouse_id", "bronze_lakehouse_id"],
+   ["ibp_config", "config_module", "utils_module"],
+   '''
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+forecast_table = cfg("output_table")
+reporting_table = cfg("reporting_table")
+target_column = cfg("target_column")
+grain_columns = cfg("grain_columns")
+
+print("[reporting] Building unified actuals-vs-forecast reporting view.")
+
+fc_df = read_lakehouse_table(spark, gold_lakehouse_id, forecast_table).toPandas()
+print(f"[reporting] Forecast versions: {len(fc_df)} rows")
+
+actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, "orders").toPandas()
+print(f"[reporting] Actuals (orders): {len(actuals_df)} rows")
+
+if "period_date" in actuals_df.columns and "period" not in actuals_df.columns:
+    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period("M").astype(str)
+
+date_col = "period" if "period" in fc_df.columns else "period_date"
+actuals_agg = actuals_df.groupby(grain_columns + [date_col], as_index=False)[target_column].sum()
+actuals_agg = actuals_agg.rename(columns={target_column: "actual_tons"})
+actuals_agg["record_type"] = "actual"
+
+forecast_rows = []
+for vtype in fc_df["version_type"].unique() if "version_type" in fc_df.columns else ["forecast"]:
+    subset = fc_df[fc_df["version_type"] == vtype].copy() if "version_type" in fc_df.columns else fc_df.copy()
+    for _, row in subset.iterrows():
+        r = {c: row.get(c) for c in grain_columns if c in row.index}
+        r[date_col] = row.get(date_col, row.get("period", row.get("period_date")))
+        r["forecast_tons"] = row.get("forecast_tons", row.get("tons", None))
+        r["model_type"] = row.get("model_type", "unknown")
+        r["version_type"] = vtype
+        r["version_id"] = row.get("version_id", "")
+        forecast_rows.append(r)
+forecast_clean = pd.DataFrame(forecast_rows)
+
+merge_keys = grain_columns + [date_col]
+valid_keys = [k for k in merge_keys if k in actuals_agg.columns and k in forecast_clean.columns]
+
+if valid_keys:
+    reporting = forecast_clean.merge(actuals_agg[valid_keys + ["actual_tons"]],
+                                     on=valid_keys, how="outer")
+else:
+    reporting = forecast_clean.copy()
+    reporting["actual_tons"] = np.nan
+
+reporting["forecast_tons"] = pd.to_numeric(reporting.get("forecast_tons"), errors="coerce")
+reporting["actual_tons"] = pd.to_numeric(reporting.get("actual_tons"), errors="coerce")
+
+mask = reporting["forecast_tons"].notna() & reporting["actual_tons"].notna()
+reporting.loc[mask, "abs_error"] = (reporting.loc[mask, "forecast_tons"] - reporting.loc[mask, "actual_tons"]).abs()
+reporting.loc[mask, "pct_error"] = reporting.loc[mask, "abs_error"] / reporting.loc[mask, "actual_tons"].replace(0, np.nan)
+reporting.loc[mask, "variance"] = reporting.loc[mask, "forecast_tons"] - reporting.loc[mask, "actual_tons"]
+
+reporting["is_future"] = reporting["actual_tons"].isna() & reporting["forecast_tons"].notna()
+reporting["snapshot_date"] = datetime.utcnow().strftime("%Y-%m-%d")
+
+write_lakehouse_table(spark.createDataFrame(reporting), gold_lakehouse_id, reporting_table, mode="overwrite")
+print(f"[reporting] Wrote {len(reporting)} reporting rows to gold.{reporting_table}")
+
+future_count = reporting["is_future"].sum()
+historical_count = (~reporting["is_future"]).sum()
+print(f"  Historical (actual+forecast): {historical_count}")
+print(f"  Future (forecast only):       {future_count}")
+print("[reporting] Complete.")
+''')
+
+
+# ─────────────────────────────────────────────────────────────────
+# 15 - Create / Update Semantic Model (DirectLake over gold)
+# ─────────────────────────────────────────────────────────────────
+nb("15_create_semantic_model",
+   ["gold_lakehouse_id"],
+   ["ibp_config", "config_module"],
+   '''
+import json
+
+semantic_model_name = cfg("semantic_model_name")
+reporting_table = cfg("reporting_table")
+print(f"[semantic] Creating/updating semantic model: {semantic_model_name}")
+print(f"[semantic] Gold lakehouse: {gold_lakehouse_id}")
+
+bim = {
+    "compatibilityLevel": 1604,
+    "model": {
+        "name": semantic_model_name,
+        "culture": "en-US",
+        "defaultMode": "directLake",
+        "tables": [
+            {
+                "name": "Reporting Actuals vs Forecast",
+                "columns": [
+                    {"name": "plant_id",       "dataType": "string",  "sourceColumn": "plant_id"},
+                    {"name": "sku_id",         "dataType": "string",  "sourceColumn": "sku_id"},
+                    {"name": "period",         "dataType": "string",  "sourceColumn": "period"},
+                    {"name": "forecast_tons",  "dataType": "double",  "sourceColumn": "forecast_tons"},
+                    {"name": "actual_tons",    "dataType": "double",  "sourceColumn": "actual_tons"},
+                    {"name": "abs_error",      "dataType": "double",  "sourceColumn": "abs_error"},
+                    {"name": "pct_error",      "dataType": "double",  "sourceColumn": "pct_error"},
+                    {"name": "variance",       "dataType": "double",  "sourceColumn": "variance"},
+                    {"name": "model_type",     "dataType": "string",  "sourceColumn": "model_type"},
+                    {"name": "version_type",   "dataType": "string",  "sourceColumn": "version_type"},
+                    {"name": "version_id",     "dataType": "string",  "sourceColumn": "version_id"},
+                    {"name": "is_future",      "dataType": "boolean", "sourceColumn": "is_future"},
+                    {"name": "snapshot_date",  "dataType": "string",  "sourceColumn": "snapshot_date"},
+                ],
+                "measures": [
+                    {"name": "Total Forecast Tons",   "expression": "SUM(\'Reporting Actuals vs Forecast\'[forecast_tons])"},
+                    {"name": "Total Actual Tons",     "expression": "SUM(\'Reporting Actuals vs Forecast\'[actual_tons])"},
+                    {"name": "Total Variance",        "expression": "[Total Forecast Tons] - [Total Actual Tons]"},
+                    {"name": "MAPE %",                "expression": "DIVIDE(SUM(\'Reporting Actuals vs Forecast\'[abs_error]), SUM(\'Reporting Actuals vs Forecast\'[actual_tons]), BLANK()) * 100", "formatString": "0.0"},
+                    {"name": "Bias %",                "expression": "DIVIDE([Total Variance], [Total Actual Tons], BLANK()) * 100", "formatString": "0.0"},
+                    {"name": "Forecast Accuracy %",   "expression": "100 - [MAPE %]", "formatString": "0.0"},
+                    {"name": "Future Forecast Tons",  "expression": "CALCULATE(SUM(\'Reporting Actuals vs Forecast\'[forecast_tons]), \'Reporting Actuals vs Forecast\'[is_future] = TRUE())"},
+                    {"name": "Historical Forecast Tons", "expression": "CALCULATE(SUM(\'Reporting Actuals vs Forecast\'[forecast_tons]), \'Reporting Actuals vs Forecast\'[is_future] = FALSE())"},
+                ],
+                "partitions": [{"name": "reporting_actuals_vs_forecast", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "reporting_actuals_vs_forecast",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
+                "name": "Forecast Versions",
+                "columns": [
+                    {"name": "plant_id",       "dataType": "string",  "sourceColumn": "plant_id"},
+                    {"name": "sku_id",         "dataType": "string",  "sourceColumn": "sku_id"},
+                    {"name": "period",         "dataType": "string",  "sourceColumn": "period"},
+                    {"name": "forecast_tons",  "dataType": "double",  "sourceColumn": "forecast_tons"},
+                    {"name": "model_type",     "dataType": "string",  "sourceColumn": "model_type"},
+                    {"name": "version_type",   "dataType": "string",  "sourceColumn": "version_type"},
+                    {"name": "version_id",     "dataType": "string",  "sourceColumn": "version_id"},
+                    {"name": "snapshot_month", "dataType": "string",  "sourceColumn": "snapshot_month"},
+                ],
+                "partitions": [{"name": "forecast_versions", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "forecast_versions",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
+                "name": "Accuracy Tracking",
+                "columns": [
+                    {"name": "plant_id",       "dataType": "string",  "sourceColumn": "plant_id"},
+                    {"name": "sku_id",         "dataType": "string",  "sourceColumn": "sku_id"},
+                    {"name": "period",         "dataType": "string",  "sourceColumn": "period"},
+                    {"name": "forecast_tons",  "dataType": "double",  "sourceColumn": "forecast_tons"},
+                    {"name": "actual_tons",    "dataType": "double",  "sourceColumn": "actual_tons"},
+                    {"name": "abs_error",      "dataType": "double",  "sourceColumn": "abs_error"},
+                    {"name": "pct_error",      "dataType": "double",  "sourceColumn": "pct_error"},
+                ],
+                "partitions": [{"name": "accuracy_tracking", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "accuracy_tracking",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
+                "name": "Consensus Forecast",
+                "columns": [
+                    {"name": "plant_id",       "dataType": "string",  "sourceColumn": "plant_id"},
+                    {"name": "sku_id",         "dataType": "string",  "sourceColumn": "sku_id"},
+                    {"name": "period",         "dataType": "string",  "sourceColumn": "period"},
+                    {"name": "forecast_tons",  "dataType": "double",  "sourceColumn": "forecast_tons"},
+                    {"name": "forecast_type",  "dataType": "string",  "sourceColumn": "forecast_type"},
+                ],
+                "partitions": [{"name": "consensus_forecast", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "consensus_forecast",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
+                "name": "Master SKU",
+                "columns": [
+                    {"name": "sku_id",    "dataType": "string", "sourceColumn": "sku_id"},
+                    {"name": "sku_name",  "dataType": "string", "sourceColumn": "sku_name"},
+                    {"name": "sku_group", "dataType": "string", "sourceColumn": "sku_group"},
+                ],
+                "partitions": [{"name": "master_sku", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "master_sku",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
+                "name": "Master Plant",
+                "columns": [
+                    {"name": "plant_id",   "dataType": "string", "sourceColumn": "plant_id"},
+                    {"name": "plant_name", "dataType": "string", "sourceColumn": "plant_name"},
+                    {"name": "region",     "dataType": "string", "sourceColumn": "region"},
+                ],
+                "partitions": [{"name": "master_plant", "mode": "directLake",
+                                "source": {"type": "entity", "entityName": "master_plant",
+                                           "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+        ],
+        "relationships": [
+            {"name": "FK_Reporting_SKU",   "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_Reporting_Plant", "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+            {"name": "FK_FV_SKU",          "fromTable": "Forecast Versions",             "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_FV_Plant",        "fromTable": "Forecast Versions",             "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+            {"name": "FK_Consensus_SKU",   "fromTable": "Consensus Forecast",            "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_Consensus_Plant", "fromTable": "Consensus Forecast",            "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+        ],
+        "expressions": [
+            {
+                "name": "DatabaseQuery",
+                "kind": "m",
+                "expression": "let\\n    database = Sql.Database(\\\"__GOLD_SQL_ENDPOINT__\\\", \\\"__GOLD_LAKEHOUSE_NAME__\\\")\\nin\\n    database",
+            }
+        ],
+    },
+}
+
+try:
+    import sempy.fabric as fabric
+
+    gold_properties = fabric.resolve_item_id(gold_lakehouse_id) if hasattr(fabric, "resolve_item_id") else None
+    print(f"[semantic] Creating semantic model via sempy...")
+    try:
+        fabric.create_semantic_model_from_bim(dataset=semantic_model_name, bim_file=bim)
+        print(f"[semantic] Created semantic model: {semantic_model_name}")
+    except Exception as e1:
+        if "already exists" in str(e1).lower():
+            print(f"[semantic] Model exists, updating...")
+            fabric.update_semantic_model_from_bim(dataset=semantic_model_name, bim_file=bim)
+            print(f"[semantic] Updated semantic model: {semantic_model_name}")
+        else:
+            raise e1
+except ImportError:
+    print("[semantic] WARNING: sempy not available. Saving BIM to lakehouse for manual import.")
+    bim_json = json.dumps(bim, indent=2)
+    bim_path = lakehouse_table_path(gold_lakehouse_id, "_semantic_model_bim").replace("/Tables/", "/Files/") + ".json"
+    dbutils.fs.put(bim_path, bim_json, overwrite=True)
+    print(f"[semantic] BIM saved to: {bim_path}")
+except Exception as e:
+    print(f"[semantic] WARNING: Semantic model creation failed: {e}")
+    print("[semantic] You can manually create it from the gold lakehouse in the Fabric UI.")
+    bim_json = json.dumps(bim, indent=2)
+    bim_path = lakehouse_table_path(gold_lakehouse_id, "_semantic_model_bim").replace("/Tables/", "/Files/") + ".json"
+    try:
+        dbutils.fs.put(bim_path, bim_json, overwrite=True)
+        print(f"[semantic] BIM definition saved to: {bim_path}")
+    except Exception:
+        pass
+
+print("[semantic] Complete.")
 ''')
 
 
