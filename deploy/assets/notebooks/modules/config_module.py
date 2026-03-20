@@ -42,4 +42,4 @@ def write_lakehouse_table(df, lakehouse_id: str, table_name: str, mode: str = "o
     """Write Delta to the explicit lakehouse path (Tables/) so it lands in the correct lakehouse.
     saveAsTable only targets the default lakehouse; path-based writes respect lakehouse_id."""
     path = lakehouse_table_path(lakehouse_id, table_name)
-    df.write.format("delta").mode(mode).option("overwriteSchema", "true").save(path)
+    df.write.format("delta").mode(mode).option("overwriteSchema", "true").option("mergeSchema", "true").save(path)
