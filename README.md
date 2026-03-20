@@ -8,9 +8,13 @@ Lakehouse-driven, AI-powered IBP (Integrated Business Planning) forecasting fram
 |---|---|
 | ![Fabric workspace folders](docs/screenshots/folders.png) | ![Data pipelines](docs/screenshots/pipelines.png) |
 
-| Semantic Model (DirectLake) | Backtest Report |
+| Semantic Model (DirectLake) |
+|---|
+| ![Semantic model diagram](docs/screenshots/semantic_model.png) |
+
+| Backtest Report — Summary | Backtest Report — Error Diagnostics |
 |---|---|
-| ![Semantic model diagram](docs/screenshots/semantic_model.png) | ![Backtest actual vs predicted](docs/screenshots/report.png) |
+| ![Summary page](docs/screenshots/report_0.png) | ![Error diagnostics page](docs/screenshots/report_1.png) |
 
 ## Architecture
 
@@ -257,12 +261,25 @@ Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from b
 
 ## Backtest Report
 
-Notebook `16_create_report` creates or updates a Power BI report (PBIR-Legacy format) via the Fabric REST API and places it in the `reports/` folder. The report is bound to the semantic model and provides:
+Notebook `16_create_report` creates or updates a Power BI report (PBIR-Legacy format) via the Fabric REST API and places it in the `reports/` folder. The report layout was designed manually in Power BI and extracted via the `getDefinition` API. The full `report.json` and base theme (`CY25SU11`) are embedded directly in the notebook as readable JSON — no external files or base64 blobs in source.
 
-- **3 slicers**: model_type, plant_id, sku_id (dropdown)
-- **5 KPI cards**: Backtest MAPE %, Avg Absolute Error, Avg % Error, Total Actual, Total Predicted
-- **Line chart**: actual vs predicted over time (sorted ascending by period)
-- **Detail table**: period, plant_id, sku_id, model_type, actual, predicted, error, abs_error, pct_error
+The report is bound to the semantic model and has two pages:
+
+**Page 1 — Summary (Backtest Overview)**
+- **4 slicers**: model_type (button), plant_id, sku_id, period (dropdowns)
+- **5 KPI cards**: Backtest MAPE %, Total Actual, Total Predicted, Avg Absolute Error, Avg % Error
+- **Line chart**: Total Actual vs Total Predicted over time
+- **Bar chart**: Actual vs Predicted by model type
+- **Bar chart**: Actual vs Predicted by plant
+- **Detail table**: model_type, plant_id, sku_id, actual, predicted, abs_error, pct_error (sorted by highest error)
+
+**Page 2 — Error Diagnostics**
+- **4 slicers**: model_type (button), plant_id, sku_id, period (dropdowns)
+- **Line chart**: Sum of abs_error over time by model type
+- **Bar chart**: Backtest MAPE % by model type
+- **Detail table**: model_type, plant_id, sku_id, actual, predicted, abs_error, pct_error
+
+To update the layout: redesign in Power BI service, extract via `getDefinition` API, and replace the embedded JSON in the notebook.
 
 The report is idempotent -- first run creates, subsequent runs update the definition in place.
 

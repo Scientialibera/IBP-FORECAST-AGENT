@@ -1,25 +1,28 @@
 # Fabric Notebook
 # 16_create_report.py
 #
-# Creates or updates a NON-LEGACY PBIR report fully from code.
+# Creates or updates a PBIR-Legacy report in Fabric using report.json + definition.pbir.
 # No manual report/template required.
 #
-# It uses:
-# - PBIR report format (definition.pbir + definition/ folder parts)
-# - Fabric Create Report API
-# - Fabric Update Report Definition API
+# This version improves the generated layout:
+# - Two pages: Summary + Detail
+# - Cleaner top slicer bar
+# - KPI cards
+# - Trend chart for Actual vs Predicted
+# - Comparison charts by Model and Plant
+# - Detail page with error trend + detail table
 #
 # Assumptions:
-# - Semantic model already exists (created by notebook 15)
-# - The semantic model contains a table/entity named "Backtest Predictions"
-# - That entity exposes these fields/measures:
+# - Notebook 15 already created the semantic model
+# - Semantic model contains a table/entity named "Backtest Predictions"
+# - Entity fields/measures:
 #     Columns: period, plant_id, sku_id, model_type, actual, predicted, error, abs_error, pct_error
 #     Measures: Backtest MAPE %, Total Actual, Total Predicted
 #
-# If your semantic model uses different names, update ENTITY / fields / measures below.
+# If your semantic model uses different names, update the constants below.
 
 # @parameters
-gold_lakehouse_id = ""   # kept for pipeline compatibility; not used directly in this notebook
+gold_lakehouse_id = ""
 # @end_parameters
 
 # %run ../modules/ibp_config
@@ -28,273 +31,1222 @@ gold_lakehouse_id = ""   # kept for pipeline compatibility; not used directly in
 import base64
 import json
 import time
-import uuid
 import requests
 
-# -----------------------------------------------------------------------------
-# CONFIG
-# -----------------------------------------------------------------------------
 workspace_id = spark.conf.get("trident.workspace.id")
 token = notebookutils.credentials.getToken("pbi")
-headers = {
-    "Authorization": f"Bearer {token}",
-    "Content-Type": "application/json",
-}
+headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
 REPORT_NAME = "IBP Backtest - Actual vs Predicted"
-REPORT_DESCRIPTION = "Programmatically generated PBIR report for backtest accuracy review."
+REPORT_DESCRIPTION = "Generated from extracted report definition."
 SEMANTIC_MODEL_NAME = cfg("semantic_model_name")
 
-# Semantic model entity + field names used by the report
-ENTITY = "Backtest Predictions"
-COL_PERIOD = "period"
-COL_PLANT = "plant_id"
-COL_SKU = "sku_id"
-COL_MODEL = "model_type"
-COL_ACTUAL = "actual"
-COL_PRED = "predicted"
-COL_ERROR = "error"
-COL_ABS_ERROR = "abs_error"
-COL_PCT_ERROR = "pct_error"
+# ---------------------------------------------------------------------------
+# Extracted decoded source files (human-readable)
+# ---------------------------------------------------------------------------
+REPORT_JSON_TEXT = r"""{
+  "config": "{\"version\":\"5.68\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY25SU11\",\"type\":2,\"version\":{\"visual\":\"2.4.0\",\"report\":\"3.0.0\",\"page\":\"2.3.0\"}}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true,\"linguisticSchemaSyncVersion\":0,\"settings\":{\"useNewFilterPaneExperience\":true,\"allowChangeFilterTypes\":true,\"useStylableVisualContainerHeader\":true,\"useDefaultAggregateDisplayName\":true,\"useEnhancedTooltips\":true}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [
+    {
+      "resourcePackage": {
+        "disabled": false,
+        "items": [
+          {
+            "name": "CY25SU11",
+            "path": "BaseThemes/CY25SU11.json",
+            "type": 202
+          }
+        ],
+        "name": "SharedResources",
+        "type": 2
+      }
+    }
+  ],
+  "sections": [
+    {
+      "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
+      "displayName": "Error Diagnostics",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 768.00,
+      "name": "a42e082c0a2e11c77bf1",
+      "ordinal": 1,
+      "visualContainers": [
+        {
+          "config": "{\"name\":\"0eecc5468fd3c39b086c\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":93.12974930757758,\"z\":0,\"width\":765.2161068105959,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}],\"Y\":[{\"queryRef\":\"Sum(Backtest Predictions.abs_error)\"}],\"Series\":[{\"queryRef\":\"Backtest Predictions.model_type\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\",\"NativeReferenceName\":\"Count of period\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}},\"Function\":1},\"Name\":\"Sum(Backtest Predictions.abs_error)\",\"NativeReferenceName\":\"Average of abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\",\"NativeReferenceName\":\"model_type\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 765.22,
+          "x": 20.18,
+          "y": 93.13,
+          "z": 0.00
+        },
+        {
+          "config": "{\"name\":\"67966d0a77d339b11749\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":6002,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 523.08,
+          "y": 0.00,
+          "z": 6002.00
+        },
+        {
+          "config": "{\"name\":\"67c530a37abfcb1c674e\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":6001,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 523.08,
+          "x": 0.00,
+          "y": 0.00,
+          "z": 6001.00
+        },
+        {
+          "config": "{\"name\":\"c4020e256502a1c0a707\",\"layouts\":[{\"id\":0,\"position\":{\"x\":812.5570627086145,\"y\":93.12974930757758,\"z\":1000,\"width\":533.1678147858817,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Backtest MAPE %\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"},\"Name\":\"Backtest Predictions.Backtest MAPE %\",\"NativeReferenceName\":\"Backtest MAPE %\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}]}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 533.17,
+          "x": 812.56,
+          "y": 93.13,
+          "z": 1000.00
+        },
+        {
+          "config": "{\"name\":\"c7fc2a469e39efc84ff4\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":434.6054967686954,\"z\":6000,\"width\":1325.546765144521,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 314.31,
+          "width": 1325.55,
+          "x": 20.18,
+          "y": 434.61,
+          "z": 6000.00
+        },
+        {
+          "config": "{\"name\":\"d9812c4ac7a7372b654f\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":6004,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 1084.96,
+          "y": 0.00,
+          "z": 6004.00
+        },
+        {
+          "config": "{\"name\":\"dab429fbf5e8093efb2b\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":6003,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 804.02,
+          "y": 0.00,
+          "z": 6003.00
+        }
+      ],
+      "width": 1366.00
+    },
+    {
+      "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
+      "displayName": "Summary — Backtest Overview",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 768.00,
+      "name": "summary_page",
+      "visualContainers": [
+        {
+          "config": "{\"name\":\"summary_bar_by_model\",\"layouts\":[{\"id\":0,\"position\":{\"x\":852.9132874085647,\"y\":177.72260492862722,\"z\":510,\"width\":502.90064626091896,\"height\":249.12207939777005}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}}]}}}",
+          "filters": "[]",
+          "height": 249.12,
+          "width": 502.90,
+          "x": 852.91,
+          "y": 177.72,
+          "z": 510.00
+        },
+        {
+          "config": "{\"name\":\"summary_bar_by_plant\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":437.70982174561465,\"z\":1000,\"width\":659.6690575953412,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}}]}}}",
+          "filters": "[]",
+          "height": 314.31,
+          "width": 659.67,
+          "x": 12.42,
+          "y": 437.71,
+          "z": 1000.00
+        },
+        {
+          "config": "{\"name\":\"summary_card_actual\",\"layouts\":[{\"id\":0,\"position\":{\"x\":289.4783040977203,\"y\":75.27988069029188,\"z\":110,\"width\":259.9872168169874,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 90.03,
+          "width": 259.99,
+          "x": 289.48,
+          "y": 75.28,
+          "z": 110.00
+        },
+        {
+          "config": "{\"name\":\"summary_card_avg_abs\",\"layouts\":[{\"id\":0,\"position\":{\"x\":838.9438250124281,\"y\":75.27988069029188,\"z\":130,\"width\":252.99938129394218,\"height\":90.02232000568141}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Avg.abs_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}},\"Function\":1},\"Name\":\"Avg.abs_error\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 90.02,
+          "width": 253.00,
+          "x": 838.94,
+          "y": 75.28,
+          "z": 130.00
+        },
+        {
+          "config": "{\"name\":\"summary_card_avg_pct\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1102.8114480505646,\"y\":75.27988069029188,\"z\":140,\"width\":253.0024856189191,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Avg.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"}},\"Function\":1},\"Name\":\"Avg.pct_error\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 90.03,
+          "width": 253.00,
+          "x": 1102.81,
+          "y": 75.28,
+          "z": 140.00
+        },
+        {
+          "config": "{\"name\":\"summary_card_mape\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":75.27988069029188,\"z\":100,\"width\":265.4197855265961,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Backtest MAPE %\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"},\"Name\":\"Backtest Predictions.Backtest MAPE %\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 90.03,
+          "width": 265.42,
+          "x": 12.42,
+          "y": 75.28,
+          "z": 100.00
+        },
+        {
+          "config": "{\"name\":\"summary_card_pred\",\"layouts\":[{\"id\":0,\"position\":{\"x\":558.0024146012357,\"y\":75.27988069029188,\"z\":120,\"width\":270.0747208294865,\"height\":90.02232000568141}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 90.02,
+          "width": 270.07,
+          "x": 558.00,
+          "y": 75.28,
+          "z": 120.00
+        },
+        {
+          "config": "{\"name\":\"summary_line_actual_vs_pred\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":177.72260492862722,\"z\":500,\"width\":826.526525104751,\"height\":249.12207939777005}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}}]}}}",
+          "filters": "[]",
+          "height": 249.12,
+          "width": 826.53,
+          "x": 12.42,
+          "y": 177.72,
+          "z": 500.00
+        },
+        {
+          "config": "{\"name\":\"summary_slicer_model\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":0,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 523.08,
+          "x": 0.00,
+          "y": 0.00,
+          "z": 0.00
+        },
+        {
+          "config": "{\"name\":\"summary_slicer_period\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":30,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 1084.96,
+          "y": 0.00,
+          "z": 30.00
+        },
+        {
+          "config": "{\"name\":\"summary_slicer_plant\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":10,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 523.08,
+          "y": 0.00,
+          "z": 10.00
+        },
+        {
+          "config": "{\"name\":\"summary_slicer_sku\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":20,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 804.02,
+          "y": 0.00,
+          "z": 20.00
+        },
+        {
+          "config": "{\"name\":\"summary_table_top\",\"layouts\":[{\"id\":0,\"position\":{\"x\":689.9362261203039,\"y\":437.70982174561465,\"z\":1010,\"width\":665.8777075491797,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 314.31,
+          "width": 665.88,
+          "x": 689.94,
+          "y": 437.71,
+          "z": 1010.00
+        }
+      ],
+      "width": 1366.00
+    }
+  ]
+}
+"""
 
-MSR_MAPE = "Backtest MAPE %"
-MSR_TOTAL_ACTUAL = "Total Actual"
-MSR_TOTAL_PRED = "Total Predicted"
+THEME_JSON_TEXT = r"""{
+  "name": "CY25SU11",
+  "dataColors": [
+    "#118DFF",
+    "#12239E",
+    "#E66C37",
+    "#6B007B",
+    "#E044A7",
+    "#744EC2",
+    "#D9B300",
+    "#D64550",
+    "#197278",
+    "#1AAB40",
+    "#15C6F4",
+    "#4092FF",
+    "#FFA058",
+    "#BE5DC9",
+    "#F472D0",
+    "#B5A1FF",
+    "#C4A200",
+    "#FF8080",
+    "#00DBBC",
+    "#5BD667",
+    "#0091D5",
+    "#4668C5",
+    "#FF6300",
+    "#99008A",
+    "#EC008C",
+    "#533285",
+    "#99700A",
+    "#FF4141",
+    "#1F9A85",
+    "#25891C",
+    "#0057A2",
+    "#002050",
+    "#C94F0F",
+    "#450F54",
+    "#B60064",
+    "#34124F",
+    "#6A5A29",
+    "#1AAB40",
+    "#BA141A",
+    "#0C3D37",
+    "#0B511F"
+  ],
+  "foreground": "#252423",
+  "foregroundNeutralSecondary": "#605E5C",
+  "foregroundNeutralTertiary": "#B3B0AD",
+  "background": "#FFFFFF",
+  "backgroundLight": "#F3F2F1",
+  "backgroundNeutral": "#C8C6C4",
+  "tableAccent": "#118DFF",
+  "good": "#1AAB40",
+  "neutral": "#D9B300",
+  "bad": "#D64554",
+  "maximum": "#118DFF",
+  "center": "#D9B300",
+  "minimum": "#DEEFFF",
+  "null": "#FF7F48",
+  "hyperlink": "#0078d4",
+  "visitedHyperlink": "#0078d4",
+  "textClasses": {
+    "callout": {
+      "fontSize": 24,
+      "fontFace": "DIN",
+      "color": "#252423"
+    },
+    "title": {
+      "fontSize": 12,
+      "fontFace": "DIN",
+      "color": "#252423"
+    },
+    "header": {
+      "fontSize": 12,
+      "fontFace": "Segoe UI Semibold",
+      "color": "#252423"
+    },
+    "label": {
+      "fontSize": 10,
+      "fontFace": "Segoe UI",
+      "color": "#252423"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "*": [
+          {
+            "wordWrap": true
+          }
+        ],
+        "line": [
+          {
+            "transparency": 0
+          }
+        ],
+        "outline": [
+          {
+            "transparency": 0
+          }
+        ],
+        "plotArea": [
+          {
+            "transparency": 0
+          }
+        ],
+        "categoryAxis": [
+          {
+            "showAxisTitle": true,
+            "gridlineStyle": "dotted",
+            "concatenateLabels": false
+          }
+        ],
+        "valueAxis": [
+          {
+            "showAxisTitle": true,
+            "gridlineStyle": "dotted"
+          }
+        ],
+        "y2Axis": [
+          {
+            "show": true
+          }
+        ],
+        "title": [
+          {
+            "titleWrap": true
+          }
+        ],
+        "lineStyles": [
+          {
+            "strokeWidth": 3
+          }
+        ],
+        "wordWrap": [
+          {
+            "show": true
+          }
+        ],
+        "background": [
+          {
+            "show": true,
+            "transparency": 0
+          }
+        ],
+        "border": [
+          {
+            "width": 1
+          }
+        ],
+        "outspacePane": [
+          {
+            "backgroundColor": {
+              "solid": {
+                "color": "#ffffff"
+              }
+            },
+            "transparency": 0,
+            "border": true,
+            "borderColor": {
+              "solid": {
+                "color": "#B3B0AD"
+              }
+            }
+          }
+        ],
+        "filterCard": [
+          {
+            "$id": "Applied",
+            "transparency": 0,
+            "foregroundColor": {
+              "solid": {
+                "color": "#252423"
+              }
+            },
+            "border": true
+          },
+          {
+            "$id": "Available",
+            "transparency": 0,
+            "foregroundColor": {
+              "solid": {
+                "color": "#252423"
+              }
+            },
+            "border": true
+          }
+        ]
+      }
+    },
+    "scatterChart": {
+      "*": {
+        "bubbles": [
+          {
+            "bubbleSize": -10,
+            "markerRangeType": "auto"
+          }
+        ],
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "fillPoint": [
+          {
+            "show": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ]
+      }
+    },
+    "lineChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ],
+        "forecast": [
+          {
+            "matchSeriesInterpolation": true
+          }
+        ]
+      }
+    },
+    "map": {
+      "*": {
+        "bubbles": [
+          {
+            "bubbleSize": -10,
+            "markerRangeType": "auto"
+          }
+        ]
+      }
+    },
+    "azureMap": {
+      "*": {
+        "bubbleLayer": [
+          {
+            "bubbleRadius": 8,
+            "minBubbleRadius": 8,
+            "maxRadius": 40
+          }
+        ],
+        "barChart": [
+          {
+            "barHeight": 3,
+            "thickness": 3
+          }
+        ]
+      }
+    },
+    "pieChart": {
+      "*": {
+        "legend": [
+          {
+            "show": true,
+            "position": "RightCenter"
+          }
+        ],
+        "labels": [
+          {
+            "labelStyle": "Data value, percent of total"
+          }
+        ]
+      }
+    },
+    "donutChart": {
+      "*": {
+        "legend": [
+          {
+            "show": true,
+            "position": "RightCenter"
+          }
+        ],
+        "labels": [
+          {
+            "labelStyle": "Data value, percent of total"
+          }
+        ]
+      }
+    },
+    "tableEx": {
+      "*": {
+        "columnHeaders": [
+          {
+            "columnAdjustment": "growToFit"
+          }
+        ]
+      }
+    },
+    "pivotTable": {
+      "*": {
+        "rowHeaders": [
+          {
+            "showExpandCollapseButtons": true,
+            "legacyStyleDisabled": true
+          }
+        ]
+      }
+    },
+    "multiRowCard": {
+      "*": {
+        "card": [
+          {
+            "outlineWeight": 2,
+            "barShow": true,
+            "barWeight": 2
+          }
+        ]
+      }
+    },
+    "kpi": {
+      "*": {
+        "trendline": [
+          {
+            "transparency": 20
+          }
+        ]
+      }
+    },
+    "cardVisual": {
+      "*": {
+        "layout": [
+          {
+            "maxTiles": 3
+          },
+          {
+            "$id": "default",
+            "cellPadding": 12,
+            "paddingIndividual": false,
+            "paddingUniform": 12,
+            "backgroundShow": true
+          }
+        ],
+        "overflow": [
+          {
+            "type": 0
+          }
+        ],
+        "image": [
+          {
+            "$id": "default",
+            "position": "Left",
+            "imageAreaSize": 20,
+            "padding": 12,
+            "rectangleRoundedCurve": 4,
+            "fit": "Normal",
+            "fixedSize": false
+          }
+        ],
+        "referenceLabel": [
+          {
+            "$id": "default",
+            "backgroundColor": {
+              "solid": {
+                "color": "backgroundLight"
+              }
+            },
+            "paddingUniform": 12,
+            "rectangleRoundedCurveCustomStyle": true,
+            "rectangleRoundedCurveLeftBottom": 4,
+            "rectangleRoundedCurveRightBottom": 4
+          }
+        ],
+        "referenceLabelDetail": [
+          {
+            "$id": "default",
+            "detailBackgroundColor": {
+              "solid": {
+                "color": "foreground"
+              }
+            },
+            "detailFontColor": {
+              "solid": {
+                "color": "background"
+              }
+            }
+          }
+        ],
+        "referenceLabelTitle": [
+          {
+            "$id": "default",
+            "titleFontColor": {
+              "solid": {
+                "color": "foregroundNeutralSecondary"
+              }
+            }
+          }
+        ],
+        "referenceLabelValue": [
+          {
+            "$id": "default",
+            "valueFontFamily": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif",
+            "fontColor": {
+              "solid": {
+                "color": "foreground"
+              }
+            }
+          }
+        ],
+        "value": [
+          {
+            "$id": "default",
+            "fontFamily": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif"
+          }
+        ],
+        "label": [
+          {
+            "$id": "default",
+            "position": "belowValue",
+            "fontColor": {
+              "solid": {
+                "color": "foregroundNeutralSecondary"
+              }
+            }
+          }
+        ],
+        "spacing": [
+          {
+            "$id": "default",
+            "verticalSpacing": 2
+          }
+        ],
+        "outline": [
+          {
+            "$id": "default",
+            "lineColor": {
+              "solid": {
+                "color": "backgroundLight"
+              }
+            }
+          }
+        ],
+        "divider": [
+          {
+            "$id": "default",
+            "dividerColor": {
+              "solid": {
+                "color": "backgroundLight"
+              }
+            }
+          }
+        ],
+        "shapeCustomRectangle": [
+          {
+            "$id": "default",
+            "tileShape": "rectangleRoundedByPixel",
+            "rectangleRoundedCurve": 4
+          }
+        ],
+        "smallMultiplesOuterShape": [
+          {
+            "$id": "default",
+            "rectangleRoundedCurveCustomStyle": false,
+            "rectangleRoundedCurve": 4
+          }
+        ],
+        "smallMultiplesHeader": [
+          {
+            "$id": "default",
+            "paddingIndividual": false,
+            "paddingUniform": 12,
+            "backgroundColor": {
+              "solid": {
+                "color": "backgroundLight"
+              }
+            }
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "style": "Table",
+            "cellPadding": 12,
+            "rowCount": 3,
+            "orientation": 1,
+            "titleOrientation": 1,
+            "headerPosition": "Top"
+          }
+        ],
+        "smallMultiplesGrid": [
+          {
+            "gridlineColor": {
+              "solid": {
+                "color": "foregroundNeutralTertiary"
+              }
+            }
+          }
+        ],
+        "smallMultiplesBorder": [
+          {
+            "$id": "default",
+            "gridlineColor": {
+              "solid": {
+                "color": "foregroundNeutralTertiary"
+              }
+            }
+          }
+        ],
+        "padding": [
+          {
+            "$id": "default",
+            "paddingUniform": 12,
+            "paddingIndividual": false
+          }
+        ]
+      }
+    },
+    "advancedSlicerVisual": {
+      "*": {
+        "layout": [
+          {
+            "maxTiles": 3
+          }
+        ],
+        "shapeCustomRectangle": [
+          {
+            "$id": "default",
+            "tileShape": "rectangleRoundedByPixel",
+            "rectangleRoundedCurve": 4
+          }
+        ],
+        "selectionIcon": [
+          {
+            "$id": "default",
+            "size": 12
+          }
+        ],
+        "value": [
+          {
+            "$id": "default",
+            "fontFamily": "'''Segoe UI Semibold'', wf_segoe-ui_semibold, helvetica, arial, sans-serif'"
+          }
+        ]
+      }
+    },
+    "slicer": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "date": [
+          {
+            "hideDatePickerButton": false
+          }
+        ],
+        "items": [
+          {
+            "padding": 4,
+            "accessibilityContrastProperties": true
+          }
+        ]
+      }
+    },
+    "waterfallChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ]
+      }
+    },
+    "columnChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "clusteredColumnChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "hundredPercentStackedColumnChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "barChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "clusteredBarChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "hundredPercentStackedBarChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "legend": [
+          {
+            "showGradientLegend": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "areaChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "stackedAreaChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "lineClusteredColumnComboChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "lineStackedColumnComboChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "ribbonChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ],
+        "valueAxis": [
+          {
+            "show": true
+          }
+        ]
+      }
+    },
+    "hundredPercentStackedAreaChart": {
+      "*": {
+        "general": [
+          {
+            "responsive": true
+          }
+        ],
+        "smallMultiplesLayout": [
+          {
+            "backgroundTransparency": 0,
+            "gridLineType": "inner"
+          }
+        ]
+      }
+    },
+    "group": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "basicShape": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "general": [
+          {
+            "keepLayerOrder": true
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "shape": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "general": [
+          {
+            "keepLayerOrder": true
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "image": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "general": [
+          {
+            "keepLayerOrder": true
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ],
+        "padding": [
+          {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          }
+        ]
+      }
+    },
+    "actionButton": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "pageNavigator": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "bookmarkNavigator": {
+      "*": {
+        "background": [
+          {
+            "show": false
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "textbox": {
+      "*": {
+        "general": [
+          {
+            "keepLayerOrder": true
+          }
+        ],
+        "visualHeader": [
+          {
+            "show": false
+          }
+        ]
+      }
+    },
+    "page": {
+      "*": {
+        "outspace": [
+          {
+            "color": {
+              "solid": {
+                "color": "#FFFFFF"
+              }
+            }
+          }
+        ],
+        "background": [
+          {
+            "transparency": 100
+          }
+        ]
+      }
+    }
+  }
+}
+"""
 
-# Stable IDs so updateDefinition keeps the same structure
-PAGE_SUMMARY = "7f27c9d2e8a54c4db101"
-PAGE_DETAIL  = "e91ab8d4c7f1438da202"
+PLATFORM_JSON_TEXT = r"""{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Report",
+    "displayName": "IBP Backtest - Actual vs Predicted",
+    "description": "Generated PBIR-Legacy report for IBP backtest analysis."
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "00000000-0000-0000-0000-000000000000"
+  }
+}
+"""
 
-V_SLICER_MODEL  = "1a01c4d9e9af4d8da001"
-V_SLICER_PLANT  = "1a01c4d9e9af4d8da002"
-V_SLICER_SKU    = "1a01c4d9e9af4d8da003"
+DEFINITION_PBIR_TEMPLATE_TEXT = r"""{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+  "version": "4.0",
+  "datasetReference": {
+    "byConnection": {
+      "connectionString": "Data Source=\"powerbi://api.powerbi.com/v1.0/myorg/Aura Bot\";initial catalog=\"IBP Forecast Model\";integrated security=ClaimsToken;semanticmodelid=e5f9030e-3901-408c-9d6c-47a97112dfa1"
+    }
+  }
+}
+"""
 
-V_CARD_MAPE     = "1a01c4d9e9af4d8da011"
-V_CARD_ACTUAL   = "1a01c4d9e9af4d8da012"
-V_CARD_PRED     = "1a01c4d9e9af4d8da013"
-
-V_LINE_AP       = "1a01c4d9e9af4d8da021"
-V_BAR_MODEL     = "1a01c4d9e9af4d8da022"
-V_BAR_SKU       = "1a01c4d9e9af4d8da023"
-
-V_DETAIL_TABLE  = "1a01c4d9e9af4d8da031"
-V_DETAIL_LINE   = "1a01c4d9e9af4d8da032"
-
-PAGE_WIDTH = 1366
-PAGE_HEIGHT = 768
-
-# -----------------------------------------------------------------------------
-# HELPERS
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 def b64_text(text: str) -> str:
     return base64.b64encode(text.encode("utf-8")).decode("utf-8")
 
 
 def b64_json(obj: dict) -> str:
     return b64_text(json.dumps(obj, indent=2))
-
-
-def lit(value):
-    if isinstance(value, bool):
-        v = "true" if value else "false"
-    elif isinstance(value, (int, float)):
-        v = str(value)
-    else:
-        v = f"'{value}'"
-    return {"expr": {"Literal": {"Value": v}}}
-
-
-def src_ref():
-    return {"SourceRef": {"Entity": ENTITY}}
-
-
-def col_field(name: str) -> dict:
-    return {
-        "Column": {
-            "Expression": src_ref(),
-            "Property": name,
-        }
-    }
-
-
-def msr_field(name: str) -> dict:
-    return {
-        "Measure": {
-            "Expression": src_ref(),
-            "Property": name,
-        }
-    }
-
-
-def qref_col(name: str) -> str:
-    return f"{ENTITY}.{name}"
-
-
-def qref_msr(name: str) -> str:
-    return f"{ENTITY}.{name}"
-
-
-def proj(field: dict, query_ref: str, active: bool = True) -> dict:
-    p = {
-        "field": field,
-        "queryRef": query_ref,
-    }
-    if active:
-        p["active"] = True
-    return p
-
-
-def pos(x, y, z, w, h):
-    return {
-        "x": x,
-        "y": y,
-        "z": z,
-        "width": w,
-        "height": h,
-        "tabOrder": z,
-    }
-
-
-def visual_base(visual_id: str, visual_type: str, position: dict, query_state: dict,
-                sort_def: dict | None = None, objects: dict | None = None) -> dict:
-    visual = {
-        "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.0.0/schema.json",
-        "name": visual_id,
-        "position": position,
-        "visual": {
-            "visualType": visual_type,
-            "query": {
-                "queryState": query_state
-            },
-            "drillFilterOtherVisuals": True,
-        },
-        "filterConfig": {"filters": []},
-    }
-    if sort_def:
-        visual["visual"]["query"]["sortDefinition"] = sort_def
-    if objects:
-        visual["visual"]["objects"] = objects
-    return visual
-
-
-def slicer_visual(visual_id: str, field_name: str, x: int, y: int, w: int = 260, h: int = 56) -> dict:
-    return visual_base(
-        visual_id=visual_id,
-        visual_type="slicer",
-        position=pos(x, y, 10 + x, w, h),
-        query_state={
-            "Values": {
-                "projections": [
-                    proj(col_field(field_name), qref_col(field_name))
-                ]
-            }
-        },
-        objects={
-            "data": [
-                {
-                    "properties": {
-                        "mode": lit("Dropdown")
-                    }
-                }
-            ]
-        }
-    )
-
-
-def card_visual(visual_id: str, measure_name: str, x: int, y: int, w: int = 250, h: int = 90) -> dict:
-    return visual_base(
-        visual_id=visual_id,
-        visual_type="card",
-        position=pos(x, y, 1000 + x, w, h),
-        query_state={
-            "Values": {
-                "projections": [
-                    proj(msr_field(measure_name), qref_msr(measure_name), active=False)
-                ]
-            }
-        }
-    )
-
-
-def line_chart_visual(visual_id: str, x: int, y: int, w: int, h: int) -> dict:
-    return visual_base(
-        visual_id=visual_id,
-        visual_type="lineChart",
-        position=pos(x, y, 2000 + x, w, h),
-        query_state={
-            "Category": {
-                "projections": [
-                    proj(col_field(COL_PERIOD), qref_col(COL_PERIOD))
-                ]
-            },
-            "Y": {
-                "projections": [
-                    proj(msr_field(MSR_TOTAL_ACTUAL), qref_msr(MSR_TOTAL_ACTUAL), active=False),
-                    proj(msr_field(MSR_TOTAL_PRED), qref_msr(MSR_TOTAL_PRED), active=False),
-                ]
-            }
-        },
-        sort_def={
-            "sort": [
-                {
-                    "field": col_field(COL_PERIOD),
-                    "direction": "Ascending"
-                }
-            ]
-        }
-    )
-
-
-def bar_chart_measure_by_column(visual_id: str, category_col: str, measure_name: str,
-                                x: int, y: int, w: int, h: int, descending: bool = True) -> dict:
-    return visual_base(
-        visual_id=visual_id,
-        visual_type="barChart",
-        position=pos(x, y, 3000 + x, w, h),
-        query_state={
-            "Category": {
-                "projections": [
-                    proj(col_field(category_col), qref_col(category_col))
-                ]
-            },
-            "Y": {
-                "projections": [
-                    proj(msr_field(measure_name), qref_msr(measure_name), active=False)
-                ]
-            }
-        },
-        sort_def={
-            "sort": [
-                {
-                    "field": msr_field(measure_name),
-                    "direction": "Descending" if descending else "Ascending"
-                }
-            ]
-        }
-    )
-
-
-def table_visual(visual_id: str, columns: list[str], x: int, y: int, w: int, h: int) -> dict:
-    return visual_base(
-        visual_id=visual_id,
-        visual_type="tableEx",
-        position=pos(x, y, 4000 + x, w, h),
-        query_state={
-            "Values": {
-                "projections": [
-                    proj(col_field(c), qref_col(c), active=False) for c in columns
-                ]
-            }
-        },
-        sort_def={
-            "sort": [
-                {
-                    "field": col_field(COL_PERIOD),
-                    "direction": "Ascending"
-                }
-            ]
-        }
-    )
 
 
 def wait_for_lro(resp: requests.Response, headers: dict):
@@ -307,7 +1259,6 @@ def wait_for_lro(resp: requests.Response, headers: dict):
         except Exception:
             return None
 
-    # 202 Accepted
     op_id = resp.headers.get("x-ms-operation-id")
     location = resp.headers.get("Location")
     retry_after = int(resp.headers.get("Retry-After", "5"))
@@ -352,9 +1303,17 @@ def wait_for_lro(resp: requests.Response, headers: dict):
     raise Exception("LRO timed out")
 
 
-# -----------------------------------------------------------------------------
-# FIND SEMANTIC MODEL
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Resolve current workspace and semantic model
+# ---------------------------------------------------------------------------
+ws_resp = requests.get(
+    f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}",
+    headers=headers,
+)
+ws_resp.raise_for_status()
+workspace_name = ws_resp.json()["displayName"]
+print(f"[report] Workspace: {workspace_name} ({workspace_id})")
+
 sm_resp = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=SemanticModel",
     headers=headers,
@@ -366,9 +1325,9 @@ if not sm_match:
 semantic_model_id = sm_match[0]["id"]
 print(f"[report] Semantic model: {semantic_model_id}")
 
-# -----------------------------------------------------------------------------
-# FIND reports FOLDER IF IT EXISTS
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Resolve optional reports folder
+# ---------------------------------------------------------------------------
 reports_folder_id = None
 folders_resp = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/folders",
@@ -379,289 +1338,58 @@ if folders_resp.status_code == 200:
         if f["displayName"] == "reports":
             reports_folder_id = f["id"]
             break
-
 print(f"[report] Reports folder: {reports_folder_id or 'workspace root'}")
 
-# -----------------------------------------------------------------------------
-# THEME
-# -----------------------------------------------------------------------------
-theme_name = "IBPBacktestTheme"
-theme_json = {
-    "name": theme_name,
-    "background": "#FFFFFF",
-    "foreground": "#111827",
-    "tableAccent": "#2563EB",
-    "dataColors": [
-        "#2563EB",  # blue
-        "#0F172A",  # dark slate
-        "#0F766E",  # teal
-        "#7C3AED",  # violet
-        "#F59E0B",  # amber
-        "#DC2626",  # red
-        "#059669",  # emerald
-    ],
-    "visualStyles": {
-        "*": {
-            "*": {
-                "title": [
-                    {
-                        "show": True,
-                        "fontFamily": "Segoe UI Semibold",
-                        "fontSize": 12,
-                        "color": {"solid": {"color": "#111827"}}
-                    }
-                ],
-                "background": [
-                    {
-                        "show": False,
-                        "transparency": 100
-                    }
-                ]
-            }
-        }
-    }
-}
+# ---------------------------------------------------------------------------
+# Patch extracted files for current environment
+# ---------------------------------------------------------------------------
+report_json = json.loads(REPORT_JSON_TEXT)
 
-# -----------------------------------------------------------------------------
-# PBIR FILES
-# -----------------------------------------------------------------------------
-report_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.1.0/schema.json",
-    "themeCollection": {
-        "baseTheme": {
-            "name": "CY26SU02",
-            "reportVersionAtImport": {
-                "visual": "2.6.0",
-                "report": "3.1.0",
-                "page": "2.3.0"
-            },
-            "type": "SharedResources"
-        },
-        "customTheme": {
-            "name": theme_name,
-            "reportVersionAtImport": {
-                "visual": "2.6.0",
-                "report": "3.1.0",
-                "page": "2.3.0"
-            },
-            "type": "RegisteredResources"
-        }
-    },
-    "resourcePackages": [
+theme_json = json.loads(THEME_JSON_TEXT)
+
+platform_json = json.loads(PLATFORM_JSON_TEXT)
+platform_json["metadata"]["displayName"] = REPORT_NAME
+platform_json["metadata"]["description"] = REPORT_DESCRIPTION
+
+definition_pbir = json.loads(DEFINITION_PBIR_TEMPLATE_TEXT)
+definition_pbir["datasetReference"]["byConnection"]["connectionString"] = (
+    f'Data Source="powerbi://api.powerbi.com/v1.0/myorg/{workspace_name}";'
+    f'initial catalog="{SEMANTIC_MODEL_NAME}";'
+    f'integrated security=ClaimsToken;'
+    f'semanticmodelid={semantic_model_id}'
+)
+
+# ---------------------------------------------------------------------------
+# Build report definition payload from decoded source files
+# ---------------------------------------------------------------------------
+definition = {
+    "parts": [
         {
-            "name": "SharedResources",
-            "type": "SharedResources",
-            "items": [
-                {
-                    "name": "CY26SU02",
-                    "path": "BaseThemes/CY26SU02.json",
-                    "type": "BaseTheme"
-                }
-            ]
+            "path": "definition.pbir",
+            "payload": b64_json(definition_pbir),
+            "payloadType": "InlineBase64",
         },
         {
-            "name": "RegisteredResources",
-            "type": "RegisteredResources",
-            "items": [
-                {
-                    "name": f"{theme_name}.json",
-                    "path": f"{theme_name}.json",
-                    "type": "CustomTheme"
-                }
-            ]
-        }
-    ],
-    "settings": {
-        "useStylableVisualContainerHeader": True,
-        "defaultFilterActionIsDataFilter": True,
-        "defaultDrillFilterOtherVisuals": True,
-        "allowChangeFilterTypes": True,
-        "allowInlineExploration": True,
-        "useEnhancedTooltips": True
-    }
+            "path": "StaticResources/SharedResources/BaseThemes/CY25SU11.json",
+            "payload": b64_json(theme_json),
+            "payloadType": "InlineBase64",
+        },
+        {
+            "path": "report.json",
+            "payload": b64_json(report_json),
+            "payloadType": "InlineBase64",
+        },
+        {
+            "path": ".platform",
+            "payload": b64_json(platform_json),
+            "payloadType": "InlineBase64",
+        },
+    ]
 }
 
-version_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
-    "version": "1.0.0"
-}
-
-pages_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
-    "pageOrder": [PAGE_SUMMARY, PAGE_DETAIL],
-    "activePageName": PAGE_SUMMARY
-}
-
-page_summary_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.0.0/schema.json",
-    "name": PAGE_SUMMARY,
-    "displayName": "Summary",
-    "displayOption": "FitToPage",
-    "height": PAGE_HEIGHT,
-    "width": PAGE_WIDTH
-}
-
-page_detail_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.0.0/schema.json",
-    "name": PAGE_DETAIL,
-    "displayName": "Detail",
-    "displayOption": "FitToPage",
-    "height": PAGE_HEIGHT,
-    "width": PAGE_WIDTH
-}
-
-definition_pbir = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
-    "version": "4.0",
-    "datasetReference": {
-        "byConnection": {
-            "connectionString": f"semanticmodelid={semantic_model_id}"
-        }
-    }
-}
-
-platform_json = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
-    "metadata": {
-        "type": "Report",
-        "displayName": REPORT_NAME
-    },
-    "config": {
-        "version": "2.0",
-        "logicalId": str(uuid.uuid4())
-    }
-}
-
-# -----------------------------------------------------------------------------
-# VISUALS - SUMMARY PAGE
-# -----------------------------------------------------------------------------
-summary_visuals = {
-    V_SLICER_MODEL: slicer_visual(V_SLICER_MODEL, COL_MODEL, 20, 18, 250, 56),
-    V_SLICER_PLANT: slicer_visual(V_SLICER_PLANT, COL_PLANT, 290, 18, 250, 56),
-    V_SLICER_SKU: slicer_visual(V_SLICER_SKU, COL_SKU, 560, 18, 250, 56),
-
-    V_CARD_MAPE: card_visual(V_CARD_MAPE, MSR_MAPE, 20, 95, 250, 95),
-    V_CARD_ACTUAL: card_visual(V_CARD_ACTUAL, MSR_TOTAL_ACTUAL, 290, 95, 250, 95),
-    V_CARD_PRED: card_visual(V_CARD_PRED, MSR_TOTAL_PRED, 560, 95, 250, 95),
-
-    V_LINE_AP: line_chart_visual(V_LINE_AP, 20, 215, 820, 240),
-
-    V_BAR_MODEL: bar_chart_measure_by_column(
-        V_BAR_MODEL,
-        COL_MODEL,
-        MSR_TOTAL_PRED,
-        860, 215, 486, 240,
-        descending=True
-    ),
-
-    V_BAR_SKU: bar_chart_measure_by_column(
-        V_BAR_SKU,
-        COL_SKU,
-        MSR_TOTAL_PRED,
-        20, 475, 1326, 245,
-        descending=True
-    ),
-}
-
-# -----------------------------------------------------------------------------
-# VISUALS - DETAIL PAGE
-# -----------------------------------------------------------------------------
-detail_visuals = {
-    "detail_slicer_model": slicer_visual("detail_slicer_model", COL_MODEL, 20, 18, 250, 56),
-    "detail_slicer_plant": slicer_visual("detail_slicer_plant", COL_PLANT, 290, 18, 250, 56),
-    "detail_slicer_sku": slicer_visual("detail_slicer_sku", COL_SKU, 560, 18, 250, 56),
-
-    V_DETAIL_LINE: line_chart_visual(V_DETAIL_LINE, 20, 95, 1326, 220),
-
-    V_DETAIL_TABLE: table_visual(
-        V_DETAIL_TABLE,
-        [
-            COL_PERIOD,
-            COL_PLANT,
-            COL_SKU,
-            COL_MODEL,
-            COL_ACTUAL,
-            COL_PRED,
-            COL_ERROR,
-            COL_ABS_ERROR,
-            COL_PCT_ERROR,
-        ],
-        20, 335, 1326, 385
-    ),
-}
-
-# -----------------------------------------------------------------------------
-# BUILD DEFINITION PARTS
-# -----------------------------------------------------------------------------
-parts = [
-    # Core PBIR files
-    {
-        "path": "definition/report.json",
-        "payload": b64_json(report_json),
-        "payloadType": "InlineBase64"
-    },
-    {
-        "path": "definition/version.json",
-        "payload": b64_json(version_json),
-        "payloadType": "InlineBase64"
-    },
-    {
-        "path": "definition/pages/pages.json",
-        "payload": b64_json(pages_json),
-        "payloadType": "InlineBase64"
-    },
-    {
-        "path": f"definition/pages/{PAGE_SUMMARY}/page.json",
-        "payload": b64_json(page_summary_json),
-        "payloadType": "InlineBase64"
-    },
-    {
-        "path": f"definition/pages/{PAGE_DETAIL}/page.json",
-        "payload": b64_json(page_detail_json),
-        "payloadType": "InlineBase64"
-    },
-
-    # Theme
-    {
-        "path": f"StaticResources/RegisteredResources/{theme_name}.json",
-        "payload": b64_json(theme_json),
-        "payloadType": "InlineBase64"
-    },
-
-    # Semantic model binding
-    {
-        "path": "definition.pbir",
-        "payload": b64_json(definition_pbir),
-        "payloadType": "InlineBase64"
-    },
-
-    # Platform metadata
-    {
-        "path": ".platform",
-        "payload": b64_json(platform_json),
-        "payloadType": "InlineBase64"
-    },
-]
-
-for vid, vjson in summary_visuals.items():
-    parts.append({
-        "path": f"definition/pages/{PAGE_SUMMARY}/visuals/{vid}/visual.json",
-        "payload": b64_json(vjson),
-        "payloadType": "InlineBase64"
-    })
-
-for vid, vjson in detail_visuals.items():
-    parts.append({
-        "path": f"definition/pages/{PAGE_DETAIL}/visuals/{vid}/visual.json",
-        "payload": b64_json(vjson),
-        "payloadType": "InlineBase64"
-    })
-
-definition = {"parts": parts}
-
-# -----------------------------------------------------------------------------
-# CREATE OR UPDATE REPORT
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Create or update report
+# ---------------------------------------------------------------------------
 existing_reports = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=Report",
     headers=headers,
@@ -673,7 +1401,7 @@ report_id = None
 
 if existing:
     report_id = existing[0]["id"]
-    print(f"[report] Report exists ({report_id}), updating PBIR definition...")
+    print(f"[report] Report exists ({report_id}), updating definition...")
 
     resp = requests.post(
         f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/reports/{report_id}/updateDefinition",
@@ -683,7 +1411,7 @@ if existing:
     wait_for_lro(resp, headers)
     print("[report] Definition updated.")
 else:
-    print("[report] Creating new PBIR report...")
+    print("[report] Creating new report...")
     body = {
         "displayName": REPORT_NAME,
         "description": REPORT_DESCRIPTION,
@@ -703,7 +1431,6 @@ else:
         report_id = result.get("id")
 
     if not report_id:
-        # fallback lookup by name
         time.sleep(3)
         verify = requests.get(
             f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=Report",
