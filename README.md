@@ -134,7 +134,7 @@ IBP Forecast/
       ...
   pipelines/
     pl_ibp_seed_test_data       ← generates synthetic data
-    pl_ibp_train                ← ingest → bronze → features → train (4 models parallel)
+    pl_ibp_train                ← ingest → bronze → features → train (5 models parallel)
     pl_ibp_score                ← score → version (CDC) → gold enrichment → reporting
     pl_ibp_refresh_model        ← semantic model + backtest report (notebooks 15-16)
     pl_ibp_score_and_refresh    ← orchestrator: triggers score then refresh sequentially
@@ -245,8 +245,10 @@ Typical workflow:
 | `capacity_translation` | Tons, lineal feet, production hours per plant/SKU/line |
 | `budget_comparison` | Forecast vs. budget with over/under flags |
 | `aggregated_forecast` | Hierarchical roll-ups per version type |
+| `raw_forecasts` | Forward forecasts from all enabled models (pre-versioning) |
 | `reporting_actuals_vs_forecast` | Unified view: actual tons + forecast tons + error metrics + future flag |
 | `backtest_predictions` | Union of all enabled models' backtest predictions with error metrics |
+| `model_recommendations` | Best model per grain based on accuracy metrics |
 | `scenario_forecasts` | Side-by-side scenario results |
 | `sku_classifications` | ABC/XYZ + runner/repeater/stranger |
 | `inventory_aligned_forecast` | FG inventory coverage, net requirements |
@@ -258,7 +260,7 @@ Notebook `15_refresh_semantic_model` creates or updates a DirectLake semantic mo
 
 Notebook 15 also configures a **scheduled refresh** for the semantic model (default: daily at 06:00 UTC). This is controlled via `ibp_config.py` under `refresh_schedule_*` keys.
 
-**Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Master SKU, Master Plant, Capacity Translation
+**Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Raw Forecasts, Master SKU, Master Plant, Capacity Translation
 
 **Pre-built DAX Measures**:
 - Total Forecast Tons / Total Actual Tons / Total Variance
@@ -266,10 +268,13 @@ Notebook 15 also configures a **scheduled refresh** for the semantic model (defa
 - Future Forecast Tons / Avg Forecast Tons
 - Backtest MAPE % / Total Actual / Total Predicted
 - Total Lineal Feet / Total Production Hours
+- Raw Forecast Total
 
 **Relationships**: Fact tables → Master SKU (sku_id), Fact tables → Master Plant (plant_id)
 
-Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold, builds the unified actuals-vs-forecast table, and unions backtest prediction tables from silver into `backtest_predictions` in gold.
+See [SEMANTIC_MODEL.md](SEMANTIC_MODEL.md) for the full semantic model schema (tables, columns, measures, relationships).
+
+Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold, builds the unified actuals-vs-forecast table, copies `raw_forecasts` from silver to gold, and unions backtest prediction tables from silver into `backtest_predictions` in gold.
 
 ## Backtest Report
 
@@ -295,6 +300,22 @@ To update the layout: redesign in Power BI service, extract via `getDefinition` 
 
 The report is create-only -- if the report already exists in the workspace, the notebook skips the definition update to preserve any manual edits made in the Power BI service. Delete the report from Fabric to force re-creation from the embedded definition.
 
+## Accuracy Tracking: Predictions vs Actuals
+
+The framework includes built-in accuracy tracking that compares prior predictions against actuals as new data arrives. This runs automatically each time the scoring pipeline executes.
+
+### How It Works
+
+1. **Notebook 11 (`accuracy_tracking`)** loads all prior `system` forecast snapshots from `forecast_versions` in gold, then loads the latest actuals from bronze. It joins them on grain + period and computes per-grain/per-snapshot metrics (MAPE, bias, RMSE, MAE, R2). Results are appended to `accuracy_tracking` in gold — so the full history of forecast-vs-actual comparisons accumulates over time.
+
+2. **Notebook 14 (`build_reporting_view`)** rebuilds `reporting_actuals_vs_forecast` from the full forecast and actual datasets. Rows where actuals exist alongside forecasts get `abs_error`, `pct_error`, and `variance` computed. Rows with forecasts but no actuals are flagged `is_future = True`. This unified view powers the semantic model and Power BI report.
+
+3. **Model recommendations**: `accuracy_module.recommend_model_by_grain()` ranks models per grain using the selected metric and writes the best model per grain to `model_recommendations`.
+
+### When New Actuals Arrive
+
+The pipeline is batch-driven (scheduled or manual trigger). Each run re-reads the current state of actuals from bronze — so any new data that has landed since the last run is automatically picked up. There is no event-driven trigger; the comparison happens every time the scoring pipeline runs. For "real-time" monitoring, schedule the pipeline to run at the desired frequency (daily, weekly, etc.) via the Fabric pipeline scheduler or the semantic model's scheduled refresh.
+
 ## Configuration Reference
 
 All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.py`. Lakehouse IDs are injected at deploy time via parameter cells.
@@ -304,7 +325,7 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `naming_prefix` | `""` | Prepended to all Fabric artifact names (folders, lakehouses, experiments, semantic models, reports) |
-| `naming_suffix` | `"_dev"` | Appended to all Fabric artifact names. Use `"_dev"` / `"_staging"` / `""` to isolate environments |
+| `naming_suffix` | `""` | Appended to all Fabric artifact names. Use `"_dev"` / `"_staging"` / `""` to isolate environments |
 
 The `named(base)` helper applies prefix + suffix at runtime. Example: `named("lh_ibp_source")` returns `"lh_ibp_source_dev"`. The deploy script (`deploy-fabric.ps1`) reads `prefix` and `suffix` from `deploy.config.toml` `[naming]` and applies them to folder names, lakehouse names, and experiment names.
 
@@ -349,7 +370,7 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `forecast_horizon` | `6` | Number of periods to forecast forward |
+| `forecast_horizon` | `52` | Number of periods to forecast forward (52 weeks = 1 year) |
 | `test_split_ratio` | `0.2` | Holdout ratio for train/test evaluation |
 
 ### SARIMA
@@ -661,7 +682,7 @@ Deployment-time settings live in `deploy/deploy.config.toml`:
 After deployment, trigger pipelines from the Fabric UI or via the REST API:
 
 1. **`pl_ibp_seed_test_data`** -- run once to generate synthetic data
-2. **`pl_ibp_train`** -- ingest, transform, feature engineer, train 4 models
+2. **`pl_ibp_train`** -- ingest, transform, feature engineer, train 5 models
 3. **`pl_ibp_score_and_refresh`** -- score, enrich gold, build reporting view, create/update semantic model + backtest report
 4. **`pl_ibp_phase2_advanced`** -- advanced analytics (run after Phase 1)
 

@@ -93,6 +93,15 @@ historical_count = (~reporting["is_future"]).sum()
 logger.info(f"  Historical (actual+forecast): {historical_count}")
 logger.info(f"  Future (forecast only):       {future_count}")
 
+# ── Copy raw_forecasts from silver to gold for semantic model ────
+logger.info("[reporting] Copying raw_forecasts from silver to gold...")
+try:
+    rf_df = read_lakehouse_table(spark, silver_lakehouse_id, cfg("raw_forecasts_table"))
+    write_lakehouse_table(rf_df, gold_lakehouse_id, cfg("raw_forecasts_table"), mode="overwrite")
+    logger.info(f"  raw_forecasts: {rf_df.count()} rows copied to gold")
+except Exception as e:
+    logger.warning(f"  raw_forecasts: not found or empty -- {e}")
+
 # ── Union backtest predictions from silver into gold ─────────────
 backtest_predictions_table = cfg("backtest_predictions_table")
 logger.info("[reporting] Building backtest_predictions from silver prediction tables...")

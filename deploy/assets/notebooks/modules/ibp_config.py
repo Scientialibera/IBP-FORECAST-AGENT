@@ -65,7 +65,7 @@ IBP_CONFIG = {
     # prefix/suffix applied to lakehouses, experiments, semantic models, reports.
     # Set suffix="_dev" / "_staging" / "_prod" to isolate environments.
     "naming_prefix":  "",
-    "naming_suffix":  "_dev",
+    "naming_suffix":  "",
 
     # ── Data Schema ──────────────────────────────────────────────
     "date_column":              "period_date",
@@ -88,7 +88,7 @@ IBP_CONFIG = {
     "models_enabled": ["sarima", "prophet", "var", "exp_smoothing", "lightgbm"],
 
     # ── Forecasting ──────────────────────────────────────────────
-    "forecast_horizon":    6,
+    "forecast_horizon":    52,
     "test_split_ratio":    0.2,
 
     # ── SARIMA ───────────────────────────────────────────────────

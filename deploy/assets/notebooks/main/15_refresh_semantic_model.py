@@ -135,6 +135,21 @@ bim = {
                     "source": {"type": "entity", "entityName": "capacity_translation", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
             },
             {
+                "name": "Raw Forecasts",
+                "columns": [
+                    {"name": "plant_id",       "dataType": "string", "sourceColumn": "plant_id",       "summarizeBy": "none"},
+                    {"name": "sku_id",         "dataType": "string", "sourceColumn": "sku_id",         "summarizeBy": "none"},
+                    {"name": "period",         "dataType": "string", "sourceColumn": "period",         "summarizeBy": "none"},
+                    {"name": "forecast_tons",  "dataType": "double", "sourceColumn": "forecast_tons",  "summarizeBy": "sum"},
+                    {"name": "model_type",     "dataType": "string", "sourceColumn": "model_type",     "summarizeBy": "none"},
+                ],
+                "measures": [
+                    {"name": "Raw Forecast Total", "expression": "SUM('Raw Forecasts'[forecast_tons])", "formatString": "#,0.0"},
+                ],
+                "partitions": [{"name": "raw_forecasts", "mode": "directLake",
+                    "source": {"type": "entity", "entityName": "raw_forecasts", "schemaName": "dbo", "expressionSource": "DatabaseQuery"}}],
+            },
+            {
                 "name": "Backtest Predictions",
                 "columns": [
                     {"name": "plant_id",    "dataType": "string", "sourceColumn": "plant_id",    "summarizeBy": "none"},
@@ -163,6 +178,8 @@ bim = {
             {"name": "FK_Reporting_Plant", "fromTable": "Reporting Actuals vs Forecast", "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
             {"name": "FK_Capacity_SKU",    "fromTable": "Capacity Translation",          "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
             {"name": "FK_Capacity_Plant",  "fromTable": "Capacity Translation",          "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
+            {"name": "FK_Raw_SKU",         "fromTable": "Raw Forecasts",                  "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
+            {"name": "FK_Raw_Plant",       "fromTable": "Raw Forecasts",                  "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
             {"name": "FK_Backtest_SKU",    "fromTable": "Backtest Predictions",           "fromColumn": "sku_id",   "toTable": "Master SKU",   "toColumn": "sku_id"},
             {"name": "FK_Backtest_Plant",  "fromTable": "Backtest Predictions",           "fromColumn": "plant_id", "toTable": "Master Plant", "toColumn": "plant_id"},
         ],

@@ -9,7 +9,7 @@ workspace_name = "Aura Bot"
 
 [naming]
 prefix         = ""
-suffix         = "_dev"
+suffix         = ""
 project_folder = "IBP Forecast"
 
 # ── Lakehouses ───────────────────────────────────────────────────
@@ -90,7 +90,7 @@ registered_model_prefix  = "ibp_model"
 # ── Scoring ──────────────────────────────────────────────────────
 
 [scoring]
-forecast_horizon  = 6
+forecast_horizon  = 52
 output_table      = "forecast_versions"
 metrics_table     = "model_metrics"
 
