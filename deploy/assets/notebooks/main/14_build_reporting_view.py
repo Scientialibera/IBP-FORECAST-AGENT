@@ -1,15 +1,21 @@
 # Fabric Notebook
 # 14_build_reporting_view.py
 
+# @parameters
+gold_lakehouse_id = ""
+bronze_lakehouse_id = ""
+silver_lakehouse_id = ""
+# @end_parameters
+
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/schemas_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id("", "gold")
-bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
-silver_lakehouse_id = resolve_lakehouse_id("", "silver")
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
 
 import pandas as pd
 import numpy as np
@@ -158,12 +164,7 @@ try:
             waterfall["market_scale_factor"] = 1.0
         waterfall["market_scale_factor"] = waterfall["market_scale_factor"].fillna(1.0)
 
-        if not cons_df.empty:
-            cons_sub = cons_df[merge_keys + ["forecast_tons"]].copy()
-            cons_sub.rename(columns={"forecast_tons": "consensus_tons"}, inplace=True)
-            waterfall = waterfall.merge(cons_sub, on=merge_keys, how="left")
-        if "consensus_tons" not in waterfall.columns:
-            waterfall["consensus_tons"] = (waterfall["baseline_tons"] + waterfall["override_delta_tons"]) * waterfall["market_scale_factor"]
+        waterfall["consensus_tons"] = (waterfall["baseline_tons"] + waterfall["override_delta_tons"]) * waterfall["market_scale_factor"]
 
         waterfall = waterfall.merge(
             actuals_agg[merge_keys + ["actual_tons"]], on=merge_keys, how="left"
