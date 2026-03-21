@@ -289,13 +289,22 @@ The report is create-only -- if the report already exists in the workspace, the 
 
 All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.py`. Lakehouse IDs are injected at deploy time via parameter cells.
 
+### Naming Convention
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `naming_prefix` | `""` | Prepended to all Fabric artifact names (folders, lakehouses, experiments, semantic models, reports) |
+| `naming_suffix` | `"_dev"` | Appended to all Fabric artifact names. Use `"_dev"` / `"_staging"` / `""` to isolate environments |
+
+The `named(base)` helper applies prefix + suffix at runtime. Example: `named("lh_ibp_source")` returns `"lh_ibp_source_dev"`. The deploy script (`deploy-fabric.ps1`) reads `prefix` and `suffix` from `deploy.config.toml` `[naming]` and applies them to folder names, lakehouse names, and experiment names.
+
 ### Data Schema
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `date_column` | `"period_date"` | Raw date column in source tables |
 | `feature_date_column` | `"period"` | Date column after feature engineering (YYYY-MM format) |
-| `frequency` | `"M"` | Time series frequency (`"M"`, `"W"`, or `"D"`). All seasonal periods, lag windows, date offsets, and tuning grids auto-derive via `freq_params()` |
+| `frequency` | `"W"` | Time series frequency (`"M"`, `"W"`, or `"D"`). All seasonal periods, lag windows, date offsets, and tuning grids auto-derive via `freq_params()` |
 | `target_column` | `"tons"` | Target variable for forecasting |
 | `grain_columns` | `["plant_id", "sku_id"]` | Columns that define a unique time series |
 | `extended_grains` | `["plant_id", "sku_group", "customer_id", "market_id"]` | Extended grain for drill-down |
@@ -316,9 +325,9 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 | `offset_kwarg` | `"months"` | `"weeks"` | `"days"` |
 | `snapshot_fmt` | `"%Y-%m"` | `"%Y-W%W"` | `"%Y-%m-%d"` |
 | `min_train_periods` | 24 | 104 | 365 |
-| `var_maxlags` | 12 | 52 | 30 |
+| `var_maxlags` | 12 | 13 | 30 |
 | `sarima_seasonal_s` | 12 | 52 | 7 |
-| `tuning_grid_maxlags` | [4,6,8,12] | [4,13,26,52] | [7,14,30] |
+| `tuning_grid_maxlags` | [4,6,8,12] | [4,8,13,26] | [7,14,30] |
 
 ### Forecasting
 
@@ -345,7 +354,7 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `var_maxlags` | derived | Maximum lag order (auto-set by `freq_params()`: M=12, W=52, D=30) |
+| `var_maxlags` | derived | Maximum lag order (auto-set by `freq_params()`: M=12, W=13, D=30) |
 | `var_ic` | `"aic"` | Information criterion for lag selection (aic, bic, hqic) |
 
 ### Exponential Smoothing (Holt-Winters)
