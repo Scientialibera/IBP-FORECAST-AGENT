@@ -98,6 +98,8 @@ IBP_CONFIG = {
     "prophet_yearly_seasonality":  True,
     "prophet_weekly_seasonality":  False,
     "prophet_changepoint_prior":   0.30,
+    "prophet_seasonality_mode":    "multiplicative",
+    "prophet_yearly_fourier_order": 5,
 
     # ── VAR ──────────────────────────────────────────────────────
     "var_ic":       "aic",

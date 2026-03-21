@@ -67,7 +67,9 @@ sarima_order              = [1, 1, 1]
 # Prophet (required)
 prophet_yearly_seasonality  = true
 prophet_weekly_seasonality  = false
-prophet_changepoint_prior   = 0.05
+prophet_changepoint_prior   = 0.30
+prophet_seasonality_mode    = "multiplicative"
+prophet_yearly_fourier_order = 5
 
 # VAR (preferred)
 var_ic                    = "aic"

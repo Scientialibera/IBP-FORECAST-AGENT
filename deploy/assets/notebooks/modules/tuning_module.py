@@ -113,7 +113,8 @@ def ets_fit_predict(train: np.ndarray, horizon: int, trend="add",
 
 def prophet_fit_predict(train_ds: np.ndarray, train_y: np.ndarray, horizon: int,
                         yearly_seasonality=True, weekly_seasonality=False,
-                        changepoint_prior_scale=0.05) -> np.ndarray:
+                        changepoint_prior_scale=0.05,
+                        seasonality_mode="multiplicative") -> np.ndarray:
     """Prophet wrapper -- needs ds+y arrays, not just values."""
     try:
         from prophet import Prophet
@@ -121,11 +122,12 @@ def prophet_fit_predict(train_ds: np.ndarray, train_y: np.ndarray, horizon: int,
         from fbprophet import Prophet
     df = pd.DataFrame({"ds": pd.to_datetime(train_ds), "y": train_y})
     model = Prophet(yearly_seasonality=yearly_seasonality, weekly_seasonality=weekly_seasonality,
-                    daily_seasonality=False, changepoint_prior_scale=changepoint_prior_scale)
+                    daily_seasonality=False, changepoint_prior_scale=changepoint_prior_scale,
+                    seasonality_mode=seasonality_mode)
     model.fit(df)
-    future = model.make_future_dataframe(periods=horizon, freq=freq_params("code"))
+    future = model.make_future_dataframe(periods=horizon, freq=freq_params("prophet_freq"))
     forecast = model.predict(future)
-    return forecast["yhat"].iloc[-horizon:].values
+    return np.clip(forecast["yhat"].iloc[-horizon:].values, 0, None)
 
 
 # ── Default parameter grids ─────────────────────────────────────
@@ -143,9 +145,10 @@ ETS_PARAM_GRID = {
 }
 
 PROPHET_PARAM_GRID = {
-    "changepoint_prior_scale": [0.001, 0.01, 0.05, 0.1, 0.5],
-    "yearly_seasonality": [True],
+    "changepoint_prior_scale": [0.01, 0.05, 0.1, 0.3, 0.5],
+    "yearly_seasonality": [3, 5, 10],
     "weekly_seasonality": [False],
+    "seasonality_mode": ["multiplicative", "additive"],
 }
 
 VAR_PARAM_GRID = {

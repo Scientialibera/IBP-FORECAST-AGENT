@@ -2,14 +2,19 @@
 # 05_score_forecast.py -- Forward forecasting with all enabled models
 # Phase 1: Core Capability
 
+# @parameters
+silver_lakehouse_id = ""
+gold_lakehouse_id = ""
+# @end_parameters
+
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/scoring_module
 
 
-silver_lakehouse_id = resolve_lakehouse_id("", "silver")
-gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
 
 import pandas as pd
 
@@ -24,9 +29,10 @@ sarima_seasonal_order = tuple(list(cfg("sarima_order")) + [freq_params("sarima_s
 ets_trend = cfg("exp_smoothing_trend") or "add"
 ets_seasonal = cfg("exp_smoothing_seasonal") or "add"
 ets_seasonal_periods = freq_params("seasonal_periods")
-prophet_yearly = str(cfg("prophet_yearly_seasonality") or "true").lower() == "true"
+prophet_yearly = cfg("prophet_yearly_fourier_order") or cfg("prophet_yearly_seasonality")
 prophet_weekly = str(cfg("prophet_weekly_seasonality") or "false").lower() == "true"
 prophet_cp = float(cfg("prophet_changepoint_prior") or 0.05)
+prophet_sm = cfg("prophet_seasonality_mode") or "multiplicative"
 var_maxlags = freq_params("var_maxlags")
 var_ic = cfg("var_ic") or "aic"
 

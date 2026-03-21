@@ -111,12 +111,13 @@ def forecast_sarima_forward(df: pd.DataFrame, date_column: str, grain_columns: l
 
 def forecast_prophet_forward(df: pd.DataFrame, date_column: str, grain_columns: list,
                              target_column: str, horizon: int,
-                             yearly: bool = True, weekly: bool = False,
+                             yearly=True, weekly: bool = False,
                              changepoint_prior: float = 0.05,
                              experiment_name: str = "") -> pd.DataFrame:
     """Load Prophet models from MLflow and forecast forward."""
     grain_models = _load_grain_models(experiment_name, "prophet", "prophet_models.pkl")
 
+    prophet_freq = freq_params("prophet_freq")
     results = []
     groups = df.groupby(grain_columns)
     skipped = 0
@@ -131,15 +132,24 @@ def forecast_prophet_forward(df: pd.DataFrame, date_column: str, grain_columns: 
             continue
 
         model = grain_models[key_str]
-        future = model.make_future_dataframe(periods=horizon, freq=freq_params("code"))
+        group_sorted = group.sort_values(date_column)
+        last_period = pd.to_datetime(group_sorted["period"].iloc[-1])
+
+        future = model.make_future_dataframe(periods=horizon, freq=prophet_freq)
+        future = future[future["ds"] > last_period].head(horizon)
+        if future.empty:
+            future = pd.date_range(
+                start=last_period + pd.DateOffset(**{freq_params("offset_kwarg"): 1}),
+                periods=horizon, freq=freq_params("code"),
+            ).to_frame(index=False, name="ds")
+
         forecast = model.predict(future)
-        future_forecast = forecast.iloc[-horizon:]
-        for _, frow in future_forecast.iterrows():
-            r = {"period": str(frow["ds"].date()), "forecast_tons": float(frow["yhat"]),
-                 "model_type": "prophet"}
-            for k, col in enumerate(grain_columns):
-                r[col] = grain_key[k] if k < len(grain_key) else ""
-            results.append(r)
+        hist_vals = group_sorted[target_column].dropna().values
+        preds = _clip_forecasts(forecast["yhat"].values, hist_vals)
+
+        results.extend(_build_rows(
+            pd.to_datetime(forecast["ds"]), preds, grain_key, grain_columns, "prophet"
+        ))
 
     if skipped:
         logger.warning(f"[scoring] Prophet: skipped {skipped} grains (no trained model)")

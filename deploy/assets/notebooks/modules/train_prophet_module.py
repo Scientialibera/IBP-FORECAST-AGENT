@@ -23,8 +23,9 @@ def _get_prophet_class():
         return Prophet
 
 
-def train_prophet_single(series_df: pd.DataFrame, yearly_seasonality: bool = True,
+def train_prophet_single(series_df: pd.DataFrame, yearly_seasonality=True,
                          weekly_seasonality: bool = False, changepoint_prior: float = 0.05,
+                         seasonality_mode: str = "multiplicative",
                          test_ratio: float = 0.2) -> dict:
     try:
         Prophet = _get_prophet_class()
@@ -41,27 +42,31 @@ def train_prophet_single(series_df: pd.DataFrame, yearly_seasonality: bool = Tru
     test = df.iloc[split:]
     try:
         model = Prophet(yearly_seasonality=yearly_seasonality, weekly_seasonality=weekly_seasonality,
-                        daily_seasonality=False, changepoint_prior_scale=changepoint_prior)
+                        daily_seasonality=False, changepoint_prior_scale=changepoint_prior,
+                        seasonality_mode=seasonality_mode)
         model.fit(train[["ds", "y"]])
         forecast = model.predict(test[["ds"]].copy())
         preds = forecast["yhat"].values
+        preds = np.clip(preds, 0, None)
         metrics = compute_metrics(test["y"].values, preds)
         return {"status": "success", "predictions": preds.tolist(), "metrics": metrics}
     except Exception as e:
         return {"status": f"error: {e}", "predictions": [], "metrics": {}}
 
 
-def _refit_full(full_df, yearly, weekly, cp):
+def _refit_full(full_df, yearly, weekly, cp, seasonality_mode="multiplicative"):
     Prophet = _get_prophet_class()
     model = Prophet(yearly_seasonality=yearly, weekly_seasonality=weekly,
-                    daily_seasonality=False, changepoint_prior_scale=cp)
+                    daily_seasonality=False, changepoint_prior_scale=cp,
+                    seasonality_mode=seasonality_mode)
     model.fit(full_df[["ds", "y"]])
     return model
 
 
 def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
-                            target_column: str, yearly_seasonality: bool = True,
+                            target_column: str, yearly_seasonality=True,
                             weekly_seasonality: bool = False, changepoint_prior: float = 0.05,
+                            seasonality_mode: str = "multiplicative",
                             test_ratio: float = 0.2, experiment_name: str = "",
                             model_name: str = "", min_series_length: int | None = None,
                             tuning_enabled: bool = False, tuning_n_iter: int = 10,
@@ -93,7 +98,7 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
             "y": group_sorted[target_column].values,
         })
 
-        g_yearly, g_weekly, g_cp = yearly_seasonality, weekly_seasonality, changepoint_prior
+        g_yearly, g_weekly, g_cp, g_sm = yearly_seasonality, weekly_seasonality, changepoint_prior, seasonality_mode
         key_str = "|".join(str(g) for g in grain_key)
 
         if tuning_enabled:
@@ -120,7 +125,7 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
             except Exception:
                 pass
 
-        result = train_prophet_single(prophet_df, g_yearly, g_weekly, g_cp, test_ratio)
+        result = train_prophet_single(prophet_df, g_yearly, g_weekly, g_cp, g_sm, test_ratio)
 
         if result["status"] == "success" and result["predictions"]:
             split_idx = int(len(group_sorted) * (1 - test_ratio))
@@ -136,7 +141,7 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
             all_metrics.append(result["metrics"])
 
             try:
-                full_model = _refit_full(prophet_df, g_yearly, g_weekly, g_cp)
+                full_model = _refit_full(prophet_df, g_yearly, g_weekly, g_cp, g_sm)
                 grain_models[key_str] = full_model
             except Exception:
                 pass

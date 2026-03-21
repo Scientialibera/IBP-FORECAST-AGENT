@@ -2,21 +2,26 @@
 # 04_train_prophet.py -- Train Prophet per grain on Silver feature table
 # Phase 1: Required model
 
+# @parameters
+silver_lakehouse_id = ""
+# @end_parameters
+
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/train_prophet_module
 
 
-silver_lakehouse_id = resolve_lakehouse_id("", "silver")
+silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
 
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
-yearly = cfg("prophet_yearly_seasonality")
+yearly = cfg("prophet_yearly_fourier_order") or cfg("prophet_yearly_seasonality")
 weekly = cfg("prophet_weekly_seasonality")
 changepoint_prior = cfg("prophet_changepoint_prior")
+seasonality_mode = cfg("prophet_seasonality_mode") or "multiplicative"
 experiment_name = named(cfg("experiment_name"))
 model_prefix = cfg("registered_model_prefix")
 min_series_length = freq_params("min_train_periods")
@@ -31,6 +36,7 @@ results_df, agg_metrics = train_prophet_per_grain(
     df=pdf, date_column=date_column, grain_columns=grain_columns,
     target_column=target_column, yearly_seasonality=yearly,
     weekly_seasonality=weekly, changepoint_prior=changepoint_prior,
+    seasonality_mode=seasonality_mode,
     test_ratio=test_split_ratio, experiment_name=experiment_name,
     model_name=f"{model_prefix}_prophet", min_series_length=min_series_length,
 )
