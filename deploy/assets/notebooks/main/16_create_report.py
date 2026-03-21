@@ -44,7 +44,7 @@ SEMANTIC_MODEL_NAME = named(cfg("semantic_model_name"))
 # Extracted decoded source files (human-readable)
 # ---------------------------------------------------------------------------
 REPORT_JSON_TEXT = r"""{
-  "config": "{\"version\":\"5.68\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY25SU11\",\"type\":2,\"version\":{\"visual\":\"2.4.0\",\"report\":\"3.0.0\",\"page\":\"2.3.0\"}}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true,\"linguisticSchemaSyncVersion\":0,\"settings\":{\"useNewFilterPaneExperience\":true,\"allowChangeFilterTypes\":true,\"useStylableVisualContainerHeader\":true,\"useDefaultAggregateDisplayName\":true,\"useEnhancedTooltips\":true}}",
+  "config": "{\"version\":\"5.68\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY25SU11\",\"type\":2,\"version\":{\"visual\":\"2.4.0\",\"report\":\"3.0.0\",\"page\":\"2.3.0\"}}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true,\"linguisticSchemaSyncVersion\":0,\"settings\":{\"useNewFilterPaneExperience\":true,\"allowChangeFilterTypes\":true,\"useStylableVisualContainerHeader\":true,\"useDefaultAggregateDisplayName\":true,\"useEnhancedTooltips\":true},\"objects\":{\"outspacePane\":[{\"properties\":{\"expanded\":{\"expr\":{\"Literal\":{\"Value\":\"false\"}}}}}]}}",
   "layoutOptimization": 0,
   "resourcePackages": [
     {
@@ -65,10 +65,85 @@ REPORT_JSON_TEXT = r"""{
   "sections": [
     {
       "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
-      "displayName": "Error Diagnostics",
+      "displayName": "Period Predictions",
       "displayOption": 1,
       "filters": "[]",
-      "height": 768.00,
+      "height": 768.0,
+      "name": "69900eadd437250f8343",
+      "ordinal": 2,
+      "visualContainers": [
+        {
+          "config": "{\"name\":\"0b3881766238168c7974\",\"layouts\":[{\"id\":0,\"position\":{\"x\":812.5570627086145,\"y\":93.12974930757758,\"z\":1000,\"width\":533.1678147858817,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Forecast Waterfall.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Sum(Forecast Waterfall.baseline_tons)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"baseline_tons\"}},\"Function\":0},\"Name\":\"Sum(Forecast Waterfall.baseline_tons)\",\"NativeReferenceName\":\"Sum of baseline_tons\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"baseline_tons\"}},\"Function\":0}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}]}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 533.17,
+          "x": 812.56,
+          "y": 93.13,
+          "z": 1000.0
+        },
+        {
+          "config": "{\"name\":\"26c87021b50a60b4677e\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":6001,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master Plant.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master Plant\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"plant_id\"},\"Name\":\"Master Plant.plant_id\",\"NativeReferenceName\":\"plant_id1\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 523.08,
+          "y": 0.0,
+          "z": 6001.0
+        },
+        {
+          "config": "{\"name\":\"3ca07c475d384e130e49\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":434.6054967686954,\"z\":2000,\"width\":1325.546765144521,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.model_type\"},{\"queryRef\":\"Forecast Waterfall.plant_id\"},{\"queryRef\":\"Forecast Waterfall.sku_id\"},{\"queryRef\":\"Forecast Waterfall.period\"},{\"queryRef\":\"Forecast Waterfall.baseline_tons\"},{\"queryRef\":\"Forecast Waterfall.override_delta_tons\"},{\"queryRef\":\"Forecast Waterfall.market_scale_factor\"},{\"queryRef\":\"Sum(Forecast Waterfall.consensus_tons)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"baseline_tons\"},\"Name\":\"Forecast Waterfall.baseline_tons\",\"NativeReferenceName\":\"baseline_tons\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"market_scale_factor\"},\"Name\":\"Forecast Waterfall.market_scale_factor\",\"NativeReferenceName\":\"market_scale_factor\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"override_delta_tons\"},\"Name\":\"Forecast Waterfall.override_delta_tons\",\"NativeReferenceName\":\"override_delta_tons\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"sku_id\"},\"Name\":\"Forecast Waterfall.sku_id\",\"NativeReferenceName\":\"sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"plant_id\"},\"Name\":\"Forecast Waterfall.plant_id\",\"NativeReferenceName\":\"plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"consensus_tons\"},\"Name\":\"Sum(Forecast Waterfall.consensus_tons)\",\"NativeReferenceName\":\"consensus_tons\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"plant_id\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"sku_id\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 314.31,
+          "width": 1325.55,
+          "x": 20.18,
+          "y": 434.61,
+          "z": 2000.0
+        },
+        {
+          "config": "{\"name\":\"6d23c3dd3de3b13f7264\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":93.12974930757758,\"z\":0,\"width\":765.2161068105959,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Forecast Waterfall.period\",\"active\":true}],\"Series\":[{\"queryRef\":\"Forecast Waterfall.model_type\"}],\"Y\":[{\"queryRef\":\"Sum(Forecast Waterfall.baseline_tons)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"baseline_tons\"}},\"Function\":0},\"Name\":\"Sum(Forecast Waterfall.baseline_tons)\",\"NativeReferenceName\":\"Sum of baseline_tons\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"baseline_tons\"}},\"Function\":0}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 765.22,
+          "x": 20.18,
+          "y": 93.13,
+          "z": 0.0
+        },
+        {
+          "config": "{\"name\":\"7abac0202091171a5162\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":6002,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master SKU.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master SKU\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"sku_id\"},\"Name\":\"Master SKU.sku_id\",\"NativeReferenceName\":\"sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 804.02,
+          "y": 0.0,
+          "z": 6002.0
+        },
+        {
+          "config": "{\"name\":\"c144074537fac6a19920\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":6000,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 1084.96,
+          "y": 0.0,
+          "z": 6000.0
+        },
+        {
+          "config": "{\"name\":\"e60707ef6b7fcdf42eda\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":3000,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 523.08,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 3000.0
+        }
+      ],
+      "width": 1366.0
+    },
+    {
+      "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
+      "displayName": "Backtest Error Diagnostics",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 768.0,
       "name": "a42e082c0a2e11c77bf1",
       "ordinal": 1,
       "visualContainers": [
@@ -79,25 +154,34 @@ REPORT_JSON_TEXT = r"""{
           "width": 765.22,
           "x": 20.18,
           "y": 93.13,
-          "z": 0.00
+          "z": 0.0
         },
         {
-          "config": "{\"name\":\"67966d0a77d339b11749\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":6002,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"1cfea2142ea46ce4adcc\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.6027000964319,\"y\":0,\"z\":6001,\"width\":280.68659594985536,\"height\":67.39440694310511}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master Plant.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master Plant\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"plant_id\"},\"Name\":\"Master Plant.plant_id\",\"NativeReferenceName\":\"plant_id1\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
-          "height": 67.52,
-          "width": 280.94,
-          "x": 523.08,
-          "y": 0.00,
-          "z": 6002.00
+          "height": 67.39,
+          "width": 280.69,
+          "x": 523.6,
+          "y": 0.0,
+          "z": 6001.0
         },
         {
-          "config": "{\"name\":\"67c530a37abfcb1c674e\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":6001,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"383cc9a95070b6206ba3\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.2892960462873,\"y\":0,\"z\":6002,\"width\":280.68659594985536,\"height\":67.39440694310511}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master SKU.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master SKU\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"sku_id\"},\"Name\":\"Master SKU.sku_id\",\"NativeReferenceName\":\"sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.39,
+          "width": 280.69,
+          "x": 804.29,
+          "y": 0.0,
+          "z": 6002.0
+        },
+        {
+          "config": "{\"name\":\"67c530a37abfcb1c674e\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":3000,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 523.08,
-          "x": 0.00,
-          "y": 0.00,
-          "z": 6001.00
+          "x": 0.0,
+          "y": 0.0,
+          "z": 3000.0
         },
         {
           "config": "{\"name\":\"c4020e256502a1c0a707\",\"layouts\":[{\"id\":0,\"position\":{\"x\":812.5570627086145,\"y\":93.12974930757758,\"z\":1000,\"width\":533.1678147858817,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Backtest MAPE %\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"},\"Name\":\"Backtest Predictions.Backtest MAPE %\",\"NativeReferenceName\":\"Backtest MAPE %\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}]}}}",
@@ -106,54 +190,120 @@ REPORT_JSON_TEXT = r"""{
           "width": 533.17,
           "x": 812.56,
           "y": 93.13,
-          "z": 1000.00
+          "z": 1000.0
         },
         {
-          "config": "{\"name\":\"c7fc2a469e39efc84ff4\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":434.6054967686954,\"z\":6000,\"width\":1325.546765144521,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "config": "{\"name\":\"c7fc2a469e39efc84ff4\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":434.6054967686954,\"z\":2000,\"width\":1325.546765144521,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.period\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\",\"NativeReferenceName\":\"period\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"}}},{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
           "filters": "[]",
           "height": 314.31,
           "width": 1325.55,
           "x": 20.18,
           "y": 434.61,
-          "z": 6000.00
+          "z": 2000.0
         },
         {
-          "config": "{\"name\":\"d9812c4ac7a7372b654f\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":6004,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"d9812c4ac7a7372b654f\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":6000,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 280.94,
           "x": 1084.96,
-          "y": 0.00,
-          "z": 6004.00
+          "y": 0.0,
+          "z": 6000.0
+        }
+      ],
+      "width": 1366.0
+    },
+    {
+      "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
+      "displayName": "Model Evaluation",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 768.0,
+      "name": "e4ba7b6f25e3a44f3d29",
+      "ordinal": 3,
+      "visualContainers": [
+        {
+          "config": "{\"name\":\"000f334d9e225822121e\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":6001,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master Plant.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master Plant\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"plant_id\"},\"Name\":\"Master Plant.plant_id\",\"NativeReferenceName\":\"plant_id1\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 523.08,
+          "y": 0.0,
+          "z": 6001.0
         },
         {
-          "config": "{\"name\":\"dab429fbf5e8093efb2b\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":6003,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"0736b4d4e5081ae202de\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":6002,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master SKU.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master SKU\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"sku_id\"},\"Name\":\"Master SKU.sku_id\",\"NativeReferenceName\":\"sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 280.94,
           "x": 804.02,
-          "y": 0.00,
-          "z": 6003.00
+          "y": 0.0,
+          "z": 6002.0
+        },
+        {
+          "config": "{\"name\":\"2a2fb76f778a4279b9d6\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":2000,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 523.08,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 2000.0
+        },
+        {
+          "config": "{\"name\":\"4d3c9bed0fd745b1ccdf\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":5000,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 67.52,
+          "width": 280.94,
+          "x": 1084.96,
+          "y": 0.0,
+          "z": 5000.0
+        },
+        {
+          "config": "{\"name\":\"5e0c43c31e721c17abbf\",\"layouts\":[{\"id\":0,\"position\":{\"x\":812.5570627086145,\"y\":93.12974930757758,\"z\":1000,\"width\":533.1678147858817,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Reporting Actuals vs Forecast.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"r\",\"Entity\":\"Reporting Actuals vs Forecast\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"model_type\"},\"Name\":\"Reporting Actuals vs Forecast.model_type\",\"NativeReferenceName\":\"model_type\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"forecast_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\",\"NativeReferenceName\":\"Sum of forecast_tons\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"actual_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\",\"NativeReferenceName\":\"Sum of actual_tons\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"forecast_tons\"}},\"Function\":0}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}]}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 533.17,
+          "x": 812.56,
+          "y": 93.13,
+          "z": 1000.0
+        },
+        {
+          "config": "{\"name\":\"bf2c1c3b0c1e1f576c75\",\"layouts\":[{\"id\":0,\"position\":{\"x\":20.178112349975144,\"y\":93.12974930757758,\"z\":0,\"width\":765.2161068105959,\"height\":312.7607414246147}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Reporting Actuals vs Forecast.period\",\"active\":true}],\"Y\":[{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"r\",\"Entity\":\"Reporting Actuals vs Forecast\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"period\"},\"Name\":\"Reporting Actuals vs Forecast.period\",\"NativeReferenceName\":\"period\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"forecast_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\",\"NativeReferenceName\":\"Sum of forecast_tons\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"actual_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\",\"NativeReferenceName\":\"Sum of actual_tons\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"forecast_tons\"}},\"Function\":0}}}]},\"drillFilterOtherVisuals\":true,\"hasDefaultSort\":true,\"objects\":{}}}",
+          "filters": "[]",
+          "height": 312.76,
+          "width": 765.22,
+          "x": 20.18,
+          "y": 93.13,
+          "z": 0.0
+        },
+        {
+          "config": "{\"name\":\"eb11d3704e7e1207acc2\",\"layouts\":[{\"id\":0,\"position\":{\"x\":19.99915534595622,\"y\":439.2122193285,\"z\":6000,\"width\":1326.0978390934047,\"height\":314.60209755754204}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Reporting Actuals vs Forecast.model_type\"},{\"queryRef\":\"Reporting Actuals vs Forecast.plant_id\"},{\"queryRef\":\"Reporting Actuals vs Forecast.sku_id\"},{\"queryRef\":\"Reporting Actuals vs Forecast.period\"},{\"queryRef\":\"Reporting Actuals vs Forecast.snapshot_date\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.variance)\"},{\"queryRef\":\"Reporting Actuals vs Forecast.pct_error\"},{\"queryRef\":\"Sum(Reporting Actuals vs Forecast.abs_error)\"},{\"queryRef\":\"Reporting Actuals vs Forecast.MAPE %\"},{\"queryRef\":\"Reporting Actuals vs Forecast.Bias %\"},{\"queryRef\":\"Reporting Actuals vs Forecast.is_future\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"r\",\"Entity\":\"Reporting Actuals vs Forecast\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"model_type\"},\"Name\":\"Reporting Actuals vs Forecast.model_type\",\"NativeReferenceName\":\"model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"plant_id\"},\"Name\":\"Reporting Actuals vs Forecast.plant_id\",\"NativeReferenceName\":\"plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"sku_id\"},\"Name\":\"Reporting Actuals vs Forecast.sku_id\",\"NativeReferenceName\":\"sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"period\"},\"Name\":\"Reporting Actuals vs Forecast.period\",\"NativeReferenceName\":\"period\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"forecast_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.forecast_tons)\",\"NativeReferenceName\":\"Sum of forecast_tons\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"actual_tons\"}},\"Function\":0},\"Name\":\"Sum(Reporting Actuals vs Forecast.actual_tons)\",\"NativeReferenceName\":\"Sum of actual_tons\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"pct_error\"},\"Name\":\"Reporting Actuals vs Forecast.pct_error\",\"NativeReferenceName\":\"pct_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"abs_error\"},\"Name\":\"Sum(Reporting Actuals vs Forecast.abs_error)\",\"NativeReferenceName\":\"abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"is_future\"},\"Name\":\"Reporting Actuals vs Forecast.is_future\",\"NativeReferenceName\":\"is_future\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"MAPE %\"},\"Name\":\"Reporting Actuals vs Forecast.MAPE %\",\"NativeReferenceName\":\"MAPE %\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"Bias %\"},\"Name\":\"Reporting Actuals vs Forecast.Bias %\",\"NativeReferenceName\":\"Bias %\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"snapshot_date\"},\"Name\":\"Reporting Actuals vs Forecast.snapshot_date\",\"NativeReferenceName\":\"snapshot_date\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"variance\"},\"Name\":\"Sum(Reporting Actuals vs Forecast.variance)\",\"NativeReferenceName\":\"variance\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"r\"}},\"Property\":\"is_future\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 314.6,
+          "width": 1326.1,
+          "x": 20.0,
+          "y": 439.21,
+          "z": 6000.0
         }
       ],
-      "width": 1366.00
+      "width": 1366.0
     },
     {
       "config": "{\"objects\":{\"background\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":0,\"Percent\":-0.1}}}}},\"transparency\":{\"expr\":{\"Literal\":{\"Value\":\"5D\"}}}}}]}}",
-      "displayName": "Summary — Backtest Overview",
+      "displayName": "Summary \u2014 Backtest Overview",
       "displayOption": 1,
       "filters": "[]",
-      "height": 768.00,
+      "height": 768.0,
       "name": "summary_page",
       "visualContainers": [
         {
           "config": "{\"name\":\"summary_bar_by_model\",\"layouts\":[{\"id\":0,\"position\":{\"x\":852.9132874085647,\"y\":177.72260492862722,\"z\":510,\"width\":502.90064626091896,\"height\":249.12207939777005}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}}]}}}",
           "filters": "[]",
           "height": 249.12,
-          "width": 502.90,
+          "width": 502.9,
           "x": 852.91,
           "y": 177.72,
-          "z": 510.00
+          "z": 510.0
         },
         {
           "config": "{\"name\":\"summary_bar_by_plant\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":437.70982174561465,\"z\":1000,\"width\":659.6690575953412,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"clusteredColumnChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}}]}}}",
@@ -162,7 +312,7 @@ REPORT_JSON_TEXT = r"""{
           "width": 659.67,
           "x": 12.42,
           "y": 437.71,
-          "z": 1000.00
+          "z": 1000.0
         },
         {
           "config": "{\"name\":\"summary_card_actual\",\"layouts\":[{\"id\":0,\"position\":{\"x\":289.4783040977203,\"y\":75.27988069029188,\"z\":110,\"width\":259.9872168169874,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
@@ -171,25 +321,25 @@ REPORT_JSON_TEXT = r"""{
           "width": 259.99,
           "x": 289.48,
           "y": 75.28,
-          "z": 110.00
+          "z": 110.0
         },
         {
           "config": "{\"name\":\"summary_card_avg_abs\",\"layouts\":[{\"id\":0,\"position\":{\"x\":838.9438250124281,\"y\":75.27988069029188,\"z\":130,\"width\":252.99938129394218,\"height\":90.02232000568141}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Avg.abs_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}},\"Function\":1},\"Name\":\"Avg.abs_error\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
           "filters": "[]",
           "height": 90.02,
-          "width": 253.00,
+          "width": 253.0,
           "x": 838.94,
           "y": 75.28,
-          "z": 130.00
+          "z": 130.0
         },
         {
           "config": "{\"name\":\"summary_card_avg_pct\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1102.8114480505646,\"y\":75.27988069029188,\"z\":140,\"width\":253.0024856189191,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Avg.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"}},\"Function\":1},\"Name\":\"Avg.pct_error\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
           "filters": "[]",
           "height": 90.03,
-          "width": 253.00,
+          "width": 253.0,
           "x": 1102.81,
           "y": 75.28,
-          "z": 140.00
+          "z": 140.0
         },
         {
           "config": "{\"name\":\"summary_card_mape\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":75.27988069029188,\"z\":100,\"width\":265.4197855265961,\"height\":90.02542433065832}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Backtest MAPE %\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Backtest MAPE %\"},\"Name\":\"Backtest Predictions.Backtest MAPE %\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
@@ -198,16 +348,16 @@ REPORT_JSON_TEXT = r"""{
           "width": 265.42,
           "x": 12.42,
           "y": 75.28,
-          "z": 100.00
+          "z": 100.0
         },
         {
           "config": "{\"name\":\"summary_card_pred\",\"layouts\":[{\"id\":0,\"position\":{\"x\":558.0024146012357,\"y\":75.27988069029188,\"z\":120,\"width\":270.0747208294865,\"height\":90.02232000568141}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"categoryLabels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}}}}]}}}",
           "filters": "[]",
           "height": 90.02,
           "width": 270.07,
-          "x": 558.00,
+          "x": 558.0,
           "y": 75.28,
-          "z": 120.00
+          "z": 120.0
         },
         {
           "config": "{\"name\":\"summary_line_actual_vs_pred\",\"layouts\":[{\"id\":0,\"position\":{\"x\":12.41729990767701,\"y\":177.72260492862722,\"z\":500,\"width\":826.526525104751,\"height\":249.12207939777005}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}],\"Y\":[{\"queryRef\":\"Backtest Predictions.Total Actual\"},{\"queryRef\":\"Backtest Predictions.Total Predicted\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Actual\"},\"Name\":\"Backtest Predictions.Total Actual\"},{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"Total Predicted\"},\"Name\":\"Backtest Predictions.Total Predicted\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Actual\"}},{\"properties\":{\"fill\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":-0.5}}}}}},\"selector\":{\"metadata\":\"Backtest Predictions.Total Predicted\"}}]}}}",
@@ -216,59 +366,58 @@ REPORT_JSON_TEXT = r"""{
           "width": 826.53,
           "x": 12.42,
           "y": 177.72,
-          "z": 500.00
+          "z": 500.0
         },
         {
-          "config": "{\"name\":\"summary_slicer_model\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":0,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"summary_slicer_model\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":0,\"width\":523.078758610894,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.model_type\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"model_type\"},\"Name\":\"Forecast Waterfall.model_type\",\"NativeReferenceName\":\"model_type\"}]},\"syncGroup\":{\"groupName\":\"model_type\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Basic'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 523.08,
-          "x": 0.00,
-          "y": 0.00,
-          "z": 0.00
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
         },
         {
-          "config": "{\"name\":\"summary_slicer_period\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":30,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"summary_slicer_period\",\"layouts\":[{\"id\":0,\"position\":{\"x\":1084.9615794332788,\"y\":0,\"z\":30,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Forecast Waterfall.period\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"f\",\"Entity\":\"Forecast Waterfall\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"f\"}},\"Property\":\"period\"},\"Name\":\"Forecast Waterfall.period\",\"NativeReferenceName\":\"period\"}]},\"syncGroup\":{\"groupName\":\"period\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 280.94,
           "x": 1084.96,
-          "y": 0.00,
-          "z": 30.00
+          "y": 0.0,
+          "z": 30.0
         },
         {
-          "config": "{\"name\":\"summary_slicer_plant\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":10,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"summary_slicer_plant\",\"layouts\":[{\"id\":0,\"position\":{\"x\":523.078758610894,\"y\":0,\"z\":10,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master Plant.plant_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master Plant\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"plant_id\"},\"Name\":\"Master Plant.plant_id\",\"NativeReferenceName\":\"plant_id1\"}]},\"syncGroup\":{\"groupName\":\"plant_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 280.94,
           "x": 523.08,
-          "y": 0.00,
-          "z": 10.00
+          "y": 0.0,
+          "z": 10.0
         },
         {
-          "config": "{\"name\":\"summary_slicer_sku\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":20,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
+          "config": "{\"name\":\"summary_slicer_sku\",\"layouts\":[{\"id\":0,\"position\":{\"x\":804.0201690220865,\"y\":0,\"z\":20,\"width\":280.9414104111924,\"height\":67.51906824799374}}],\"singleVisual\":{\"visualType\":\"slicer\",\"projections\":{\"Values\":[{\"queryRef\":\"Master SKU.sku_id\",\"active\":true}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"Master SKU\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"sku_id\"},\"Name\":\"Master SKU.sku_id\",\"NativeReferenceName\":\"sku_id\"}]},\"syncGroup\":{\"groupName\":\"sku_id\",\"fieldChanges\":true,\"filterChanges\":true},\"drillFilterOtherVisuals\":true,\"objects\":{\"data\":[{\"properties\":{\"mode\":{\"expr\":{\"Literal\":{\"Value\":\"'Dropdown'\"}}}}}],\"items\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}},\"bold\":{\"expr\":{\"Literal\":{\"Value\":\"true\"}}},\"background\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":7,\"Percent\":0.6}}}}}}}],\"header\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":{\"expr\":{\"ThemeDataColor\":{\"ColorId\":1,\"Percent\":0}}}}}}}],\"general\":[{\"properties\":{\"orientation\":{\"expr\":{\"Literal\":{\"Value\":\"1D\"}}}}}]}}}",
           "filters": "[]",
           "height": 67.52,
           "width": 280.94,
           "x": 804.02,
-          "y": 0.00,
-          "z": 20.00
+          "y": 0.0,
+          "z": 20.0
         },
         {
-          "config": "{\"name\":\"summary_table_top\",\"layouts\":[{\"id\":0,\"position\":{\"x\":689.9362261203039,\"y\":437.70982174561465,\"z\":1010,\"width\":665.8777075491797,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
+          "config": "{\"name\":\"summary_table_top\",\"layouts\":[{\"id\":0,\"position\":{\"x\":689.9362261203039,\"y\":437.70982174561465,\"z\":1010,\"width\":665.8777075491797,\"height\":314.31290391307436}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"Backtest Predictions.model_type\"},{\"queryRef\":\"Backtest Predictions.plant_id\"},{\"queryRef\":\"Backtest Predictions.sku_id\"},{\"queryRef\":\"Backtest Predictions.period\"},{\"queryRef\":\"Backtest Predictions.actual\"},{\"queryRef\":\"Backtest Predictions.predicted\"},{\"queryRef\":\"Backtest Predictions.abs_error\"},{\"queryRef\":\"Backtest Predictions.pct_error\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"b\",\"Entity\":\"Backtest Predictions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"model_type\"},\"Name\":\"Backtest Predictions.model_type\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"plant_id\"},\"Name\":\"Backtest Predictions.plant_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"sku_id\"},\"Name\":\"Backtest Predictions.sku_id\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"actual\"},\"Name\":\"Backtest Predictions.actual\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"predicted\"},\"Name\":\"Backtest Predictions.predicted\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"},\"Name\":\"Backtest Predictions.abs_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"pct_error\"},\"Name\":\"Backtest Predictions.pct_error\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"period\"},\"Name\":\"Backtest Predictions.period\",\"NativeReferenceName\":\"period\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"b\"}},\"Property\":\"abs_error\"}}}]},\"drillFilterOtherVisuals\":true,\"objects\":{},\"vcObjects\":{\"stylePreset\":[{\"properties\":{\"name\":{\"expr\":{\"Literal\":{\"Value\":\"'Sparse'\"}}}}}]}}}",
           "filters": "[]",
           "height": 314.31,
           "width": 665.88,
           "x": 689.94,
           "y": 437.71,
-          "z": 1010.00
+          "z": 1010.0
         }
       ],
-      "width": 1366.00
+      "width": 1366.0
     }
   ]
-}
-"""
+}"""
 
 THEME_JSON_TEXT = r"""{
   "name": "CY25SU11",
@@ -1209,33 +1358,29 @@ THEME_JSON_TEXT = r"""{
       }
     }
   }
-}
-"""
+}"""
 
 PLATFORM_JSON_TEXT = r"""{
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
   "metadata": {
     "type": "Report",
-    "displayName": "IBP Backtest - Actual vs Predicted",
-    "description": "Generated PBIR-Legacy report for IBP backtest analysis."
+    "displayName": "updated report"
   },
   "config": {
     "version": "2.0",
     "logicalId": "00000000-0000-0000-0000-000000000000"
   }
-}
-"""
+}"""
 
 DEFINITION_PBIR_TEMPLATE_TEXT = r"""{
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
   "version": "4.0",
   "datasetReference": {
     "byConnection": {
-      "connectionString": "Data Source=\"powerbi://api.powerbi.com/v1.0/myorg/Aura Bot\";initial catalog=\"IBP Forecast Model\";integrated security=ClaimsToken;semanticmodelid=e5f9030e-3901-408c-9d6c-47a97112dfa1"
+      "connectionString": "Data Source=\"powerbi://api.powerbi.com/v1.0/myorg/Aura Bot\";initial catalog=\"IBP Forecast Model\";integrated security=ClaimsToken;semanticmodelid=fe697121-db16-401c-975c-33780ada6e08"
     }
   }
-}
-"""
+}"""
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1273,7 +1418,7 @@ def wait_for_lro(resp: requests.Response, headers: dict):
             if poll.status_code == 200:
                 body = poll.json()
                 status = body.get("status")
-                logger.info("LRO status: %s", status)
+                print(f"[report] LRO status: {status}")
                 if status in ("Succeeded", "Completed"):
                     result = requests.get(
                         f"https://api.fabric.microsoft.com/v1/operations/{op_id}/result",
@@ -1293,7 +1438,7 @@ def wait_for_lro(resp: requests.Response, headers: dict):
             if poll.status_code == 200:
                 body = poll.json()
                 status = body.get("status")
-                logger.info("LRO status: %s", status)
+                print(f"[report] LRO status: {status}")
                 if status in ("Succeeded", "Completed"):
                     return body
                 if status == "Failed":
@@ -1311,7 +1456,7 @@ ws_resp = requests.get(
 )
 ws_resp.raise_for_status()
 workspace_name = ws_resp.json()["displayName"]
-logger.info("Workspace: %s (%s)", workspace_name, workspace_id)
+print(f"[report] Workspace: {workspace_name} ({workspace_id})")
 
 sm_resp = requests.get(
     f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/items?type=SemanticModel",
@@ -1322,7 +1467,7 @@ sm_match = [m for m in sm_resp.json().get("value", []) if m["displayName"] == SE
 if not sm_match:
     raise Exception(f"Semantic model '{SEMANTIC_MODEL_NAME}' not found. Run notebook 15 first.")
 semantic_model_id = sm_match[0]["id"]
-logger.info("Semantic model: %s", semantic_model_id)
+print(f"[report] Semantic model: {semantic_model_id}")
 
 # ---------------------------------------------------------------------------
 # Resolve optional reports folder
@@ -1337,18 +1482,28 @@ if folders_resp.status_code == 200:
         if f["displayName"] == cfg("reports_folder"):
             reports_folder_id = f["id"]
             break
-logger.info("Reports folder: %s", reports_folder_id or "workspace root")
+print(f"[report] Reports folder: {reports_folder_id or 'workspace root'}")
 
 # ---------------------------------------------------------------------------
 # Patch extracted files for current environment
 # ---------------------------------------------------------------------------
 report_json = json.loads(REPORT_JSON_TEXT)
 
+# Optional: force open on first tab in sections array
+try:
+    report_config = json.loads(report_json.get("config", "{}"))
+    report_config["activeSectionIndex"] = 0
+    report_json["config"] = json.dumps(report_config, separators=(",", ":"))
+except Exception:
+    pass
+
 theme_json = json.loads(THEME_JSON_TEXT)
 
 platform_json = json.loads(PLATFORM_JSON_TEXT)
+platform_json.setdefault("metadata", {})
 platform_json["metadata"]["displayName"] = REPORT_NAME
-platform_json["metadata"]["description"] = REPORT_DESCRIPTION
+if REPORT_DESCRIPTION:
+    platform_json["metadata"]["description"] = REPORT_DESCRIPTION
 
 definition_pbir = json.loads(DEFINITION_PBIR_TEMPLATE_TEXT)
 definition_pbir["datasetReference"]["byConnection"]["connectionString"] = (
@@ -1400,9 +1555,16 @@ report_id = None
 
 if existing:
     report_id = existing[0]["id"]
-    logger.info("Report already exists (%s) — skipping definition update to preserve manual edits.", report_id)
+    print(f"[report] Report exists ({report_id}) — updating definition to extracted source...")
+    resp = requests.post(
+        f"https://api.fabric.microsoft.com/v1/workspaces/{workspace_id}/reports/{report_id}/updateDefinition",
+        headers=headers,
+        json={"definition": definition},
+    )
+    wait_for_lro(resp, headers)
+    print("[report] Definition updated.")
 else:
-    logger.info("Creating new report...")
+    print("[report] Creating new report...")
     body = {
         "displayName": REPORT_NAME,
         "description": REPORT_DESCRIPTION,
@@ -1432,10 +1594,10 @@ else:
         if match:
             report_id = match[0]["id"]
 
-    logger.info("Created: %s", report_id)
+    print(f"[report] Created: {report_id}")
 
 if not report_id:
     raise Exception("Report ID could not be resolved after create/update.")
 
-logger.info("URL: https://app.fabric.microsoft.com/groups/%s/reports/%s", workspace_id, report_id)
-logger.info("Complete.")
+print(f"[report] URL: https://app.fabric.microsoft.com/groups/{workspace_id}/reports/{report_id}")
+print("[report] Complete.")
