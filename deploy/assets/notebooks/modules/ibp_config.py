@@ -86,7 +86,7 @@ IBP_CONFIG = {
     # ── Prophet ──────────────────────────────────────────────────
     "prophet_yearly_seasonality":  True,
     "prophet_weekly_seasonality":  False,
-    "prophet_changepoint_prior":   0.05,
+    "prophet_changepoint_prior":   0.30,
 
     # ── VAR ──────────────────────────────────────────────────────
     "var_ic":       "aic",
