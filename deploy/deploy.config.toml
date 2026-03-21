@@ -8,11 +8,13 @@ workspace_id   = "WORKSPACE_ID_PLACEHOLDER"
 workspace_name = "Aura Bot"
 
 [naming]
-prefix       = "ibp_forecast"
+prefix         = ""
+suffix         = "_dev"
 project_folder = "IBP Forecast"
 
 # ── Lakehouses ───────────────────────────────────────────────────
 # Leave IDs empty to auto-create; set to skip creation.
+# prefix/suffix from [naming] are applied automatically by deploy-fabric.ps1.
 
 [lakehouses]
 landing_name  = "lh_ibp_landing"

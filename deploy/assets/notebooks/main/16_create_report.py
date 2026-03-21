@@ -40,9 +40,9 @@ workspace_id = spark.conf.get("trident.workspace.id")
 token = notebookutils.credentials.getToken("pbi")
 headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-REPORT_NAME = cfg("report_name")
+REPORT_NAME = named(cfg("report_name"))
 REPORT_DESCRIPTION = cfg("report_description")
-SEMANTIC_MODEL_NAME = cfg("semantic_model_name")
+SEMANTIC_MODEL_NAME = named(cfg("semantic_model_name"))
 
 # ---------------------------------------------------------------------------
 # Extracted decoded source files (human-readable)

@@ -39,9 +39,9 @@ FREQ_MAP = {
         "offset_kwarg":      "weeks",
         "snapshot_fmt":      "%Y-W%W",
         "min_train_periods": 104,
-        "var_maxlags":       52,
+        "var_maxlags":       13,
         "sarima_seasonal_s": 52,
-        "tuning_grid_maxlags": [4, 13, 26, 52],
+        "tuning_grid_maxlags": [4, 8, 13, 26],
         "prophet_freq":      "W",
     },
     "D": {
@@ -61,6 +61,12 @@ FREQ_MAP = {
 }
 
 IBP_CONFIG = {
+    # ── Naming Convention ────────────────────────────────────────
+    # prefix/suffix applied to lakehouses, experiments, semantic models, reports.
+    # Set suffix="_dev" / "_staging" / "_prod" to isolate environments.
+    "naming_prefix":  "",
+    "naming_suffix":  "_dev",
+
     # ── Data Schema ──────────────────────────────────────────────
     "date_column":              "period_date",
     "feature_date_column":      "period",
@@ -228,3 +234,13 @@ def freq_params(key=None):
     if key:
         return fp[key]
     return fp
+
+
+def named(base: str) -> str:
+    """Apply naming_prefix + base + naming_suffix.
+
+    Example: named("lh_ibp_source") -> "lh_ibp_source_dev"
+    """
+    pfx = IBP_CONFIG.get("naming_prefix") or ""
+    sfx = IBP_CONFIG.get("naming_suffix") or ""
+    return f"{pfx}{base}{sfx}"

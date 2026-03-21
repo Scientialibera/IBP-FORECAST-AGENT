@@ -15,7 +15,7 @@ gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
 
 import json, requests, base64, time
 
-semantic_model_name = cfg("semantic_model_name")
+semantic_model_name = named(cfg("semantic_model_name"))
 logger.info(f"[semantic] Create/update semantic model: {semantic_model_name}")
 
 workspace_id = spark.conf.get("trident.workspace.id")

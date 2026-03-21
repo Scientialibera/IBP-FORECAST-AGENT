@@ -21,7 +21,7 @@ test_split_ratio = cfg("test_split_ratio")
 yearly = cfg("prophet_yearly_seasonality")
 weekly = cfg("prophet_weekly_seasonality")
 changepoint_prior = cfg("prophet_changepoint_prior")
-experiment_name = cfg("experiment_name")
+experiment_name = named(cfg("experiment_name"))
 model_prefix = cfg("registered_model_prefix")
 min_series_length = freq_params("min_train_periods")
 

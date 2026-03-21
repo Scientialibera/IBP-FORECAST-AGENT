@@ -20,7 +20,7 @@ grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
 sarima_order = tuple(cfg("sarima_order"))
 sarima_seasonal_order = tuple(list(cfg("sarima_order")) + [freq_params("sarima_seasonal_s")])
-experiment_name = cfg("experiment_name")
+experiment_name = named(cfg("experiment_name"))
 model_prefix = cfg("registered_model_prefix")
 min_series_length = freq_params("min_train_periods")
 

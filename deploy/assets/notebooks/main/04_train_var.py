@@ -21,7 +21,7 @@ feature_columns = cfg("feature_columns")
 test_split_ratio = cfg("test_split_ratio")
 var_maxlags = cfg("var_maxlags")
 var_ic = cfg("var_ic")
-experiment_name = cfg("experiment_name")
+experiment_name = named(cfg("experiment_name"))
 model_prefix = cfg("registered_model_prefix")
 min_series_length = freq_params("min_train_periods")
 

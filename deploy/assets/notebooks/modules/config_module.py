@@ -39,7 +39,7 @@ def resolve_lakehouse_id(current_value: str, tier: str) -> str:
         _cfg_logger.info("Discovered %d lakehouses in workspace", len(_lakehouse_cache))
 
     lh_names = cfg("lakehouse_names")
-    lh_name = lh_names.get(tier)
+    lh_name = named(lh_names.get(tier, ""))
     if not lh_name:
         raise ValueError(f"No lakehouse name configured for tier '{tier}'")
 

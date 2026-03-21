@@ -21,7 +21,7 @@ test_split_ratio = cfg("test_split_ratio")
 trend = cfg("exp_smoothing_trend")
 seasonal = cfg("exp_smoothing_seasonal")
 seasonal_periods = freq_params("seasonal_periods")
-experiment_name = cfg("experiment_name")
+experiment_name = named(cfg("experiment_name"))
 model_prefix = cfg("registered_model_prefix")
 min_series_length = freq_params("min_train_periods")
 

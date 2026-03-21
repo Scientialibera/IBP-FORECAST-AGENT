@@ -262,8 +262,11 @@ function Deploy-NotebooksParallel {
 # MAIN FLOW
 # ─────────────────────────────────────────────────────────────────
 
+$namingPrefix = if ($config.naming.prefix) { $config.naming.prefix } else { "" }
+$namingSuffix = if ($config.naming.suffix) { $config.naming.suffix } else { "" }
 $projectFolderName = $config.naming.project_folder
 if ([string]::IsNullOrWhiteSpace($projectFolderName)) { $projectFolderName = "IBP Forecast" }
+$projectFolderName = "${namingPrefix}${projectFolderName}${namingSuffix}"
 
 # 1. Folders
 Write-Host "`n[1/8] Creating project folder '$projectFolderName'..." -ForegroundColor Yellow
@@ -280,7 +283,7 @@ $mainFolderId        = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName
 $modulesFolderId     = Ensure-FabricFolder -WorkspaceId $workspaceId -FolderName "modules"     -ParentFolderId $notebooksFolderId
 
 # 2b. MLflow Experiment (infrastructure -- must exist in experiments/ before notebooks run)
-$experimentName = $config.mlflow.experiment_name
+$experimentName = "${namingPrefix}$($config.mlflow.experiment_name)${namingSuffix}"
 if (-not [string]::IsNullOrWhiteSpace($experimentName)) {
     $existingExp = Get-FabricItems -WorkspaceId $workspaceId -Type "MLExperiment" | Where-Object { $_.displayName -eq $experimentName }
     $inFolder = $null
@@ -309,11 +312,11 @@ if (-not [string]::IsNullOrWhiteSpace($experimentName)) {
 Write-Host "`n[3/8] Creating lakehouses..." -ForegroundColor Yellow
 $lakehouseIds = @{}
 foreach ($entry in @(
-    @{ key = "source";  id = $config.source.source_lakehouse_id;  name = $config.source.source_lakehouse_name },
-    @{ key = "landing"; id = $config.lakehouses.landing_id; name = $config.lakehouses.landing_name },
-    @{ key = "bronze";  id = $config.lakehouses.bronze_id;  name = $config.lakehouses.bronze_name },
-    @{ key = "silver";  id = $config.lakehouses.silver_id;  name = $config.lakehouses.silver_name },
-    @{ key = "gold";    id = $config.lakehouses.gold_id;    name = $config.lakehouses.gold_name }
+    @{ key = "source";  id = $config.source.source_lakehouse_id;  name = "${namingPrefix}$($config.source.source_lakehouse_name)${namingSuffix}" },
+    @{ key = "landing"; id = $config.lakehouses.landing_id; name = "${namingPrefix}$($config.lakehouses.landing_name)${namingSuffix}" },
+    @{ key = "bronze";  id = $config.lakehouses.bronze_id;  name = "${namingPrefix}$($config.lakehouses.bronze_name)${namingSuffix}" },
+    @{ key = "silver";  id = $config.lakehouses.silver_id;  name = "${namingPrefix}$($config.lakehouses.silver_name)${namingSuffix}" },
+    @{ key = "gold";    id = $config.lakehouses.gold_id;    name = "${namingPrefix}$($config.lakehouses.gold_name)${namingSuffix}" }
 )) {
     try {
         $lakehouseIds[$entry.key] = Ensure-FabricLakehouse -WorkspaceId $workspaceId -LakehouseId $entry.id -LakehouseName $entry.name -FolderId $dataFolderId
