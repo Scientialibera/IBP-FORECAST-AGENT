@@ -2,11 +2,6 @@
 # 11_accuracy_tracking.py -- Compare prior forecast snapshots to actuals
 # Phase 1: Core Capability -- Objective accuracy measurement
 
-# @parameters
-gold_lakehouse_id = ""
-bronze_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
@@ -15,8 +10,8 @@ bronze_lakehouse_id = ""
 # %run ../modules/accuracy_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
 
 forecast_table = cfg("output_table")
 accuracy_table = cfg("accuracy_table")

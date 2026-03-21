@@ -11,16 +11,12 @@
 #   - Cross-SKU cannibalization within same group
 #   - Frequency-aware: works at M / W / D grain via freq_params()
 
-# @parameters
-source_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/schemas_module
 
 
-source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
+source_lakehouse_id = resolve_lakehouse_id("", "source")
 
 import pandas as pd
 import numpy as np

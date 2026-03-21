@@ -3,16 +3,12 @@
 # Creates the DirectLake semantic model on first run, updates definition on subsequent runs,
 # then triggers a refresh. All tables must exist in lh_ibp_gold before this runs.
 
-# @parameters
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/schemas_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 import json, requests, base64, time
 

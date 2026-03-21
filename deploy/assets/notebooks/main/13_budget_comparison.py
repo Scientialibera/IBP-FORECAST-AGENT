@@ -2,19 +2,14 @@
 # 13_budget_comparison.py -- Compare consensus forecast to budget, flag over/under
 # Phase 1: Core Capability
 
-# @parameters
-gold_lakehouse_id = ""
-bronze_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/versioning_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
 
 from pyspark.sql import functions as F
 

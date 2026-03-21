@@ -11,21 +11,7 @@
             "referenceName": "{{PL_pl_ibp_score}}",
             "type": "PipelineReference"
           },
-          "waitOnCompletion": true,
-          "parameters": {
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "Expression"
-            },
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "Expression"
-            },
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "Expression"
-            }
-          }
+          "waitOnCompletion": true
         }
       },
       {
@@ -44,30 +30,10 @@
             "referenceName": "{{PL_pl_ibp_refresh_model}}",
             "type": "PipelineReference"
           },
-          "waitOnCompletion": true,
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "Expression"
-            }
-          }
+          "waitOnCompletion": true
         }
       }
     ],
-    "parameters": {
-      "bronze_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{BRONZE_LH}}"
-      },
-      "silver_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{SILVER_LH}}"
-      },
-      "gold_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{GOLD_LH}}"
-      }
-    },
     "annotations": []
   }
 }

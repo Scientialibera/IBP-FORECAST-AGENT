@@ -141,29 +141,6 @@ def make_run_cell(module_name: str) -> str:
     return f"\n# CELL ********************\n\n%run {module_name}\n{CELL_META}"
 
 
-PARAM_TO_TIER = {
-    "source_lakehouse_id":  "source",
-    "landing_lakehouse_id": "landing",
-    "bronze_lakehouse_id":  "bronze",
-    "silver_lakehouse_id":  "silver",
-    "gold_lakehouse_id":    "gold",
-}
-
-
-def inject_lakehouse_ids(line: str, lakehouse_ids: dict) -> str:
-    """Replace empty-string defaults in parameter cells with real lakehouse IDs."""
-    m = re.match(r'^(\w+_lakehouse_id)\s*=\s*""(.*)$', line)
-    if m:
-        param_name = m.group(1)
-        rest = m.group(2)
-        tier = PARAM_TO_TIER.get(param_name)
-        if tier:
-            real_id = lakehouse_ids.get(tier, "")
-            if real_id:
-                return f'{param_name} = "{real_id}"{rest}'
-    return line
-
-
 def convert_file(path: pathlib.Path, workspace_id: str, lakehouse_ids: dict,
                  lakehouse_names: dict) -> str:
     raw = path.read_text(encoding="utf-8")

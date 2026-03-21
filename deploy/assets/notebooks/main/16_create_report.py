@@ -21,15 +21,11 @@
 #
 # If your semantic model uses different names, update the constants below.
 
-# @parameters
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 import base64
 import json

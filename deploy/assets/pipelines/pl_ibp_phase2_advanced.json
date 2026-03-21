@@ -13,21 +13,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_P2_01_external_signals}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            },
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -41,17 +27,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_P2_02_scenario_modeling}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -65,17 +41,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_P2_03_sku_classification}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "string"
-            },
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -89,42 +55,10 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_P2_04_inventory_alignment}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       }
     ],
-    "parameters": {
-      "source_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{SOURCE_LH}}"
-      },
-      "landing_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{LANDING_LH}}"
-      },
-      "bronze_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{BRONZE_LH}}"
-      },
-      "silver_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{SILVER_LH}}"
-      },
-      "gold_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{GOLD_LH}}"
-      }
-    },
     "annotations": []
   }
 }

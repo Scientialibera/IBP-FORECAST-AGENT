@@ -13,17 +13,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_05_score_forecast}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "string"
-            },
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -44,17 +34,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_06_version_snapshot}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "string"
-            },
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -75,17 +55,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_07_demand_to_capacity}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -106,17 +76,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_08_sales_overrides}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -137,17 +97,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_09_market_adjustments}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -174,13 +124,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_10_consensus_build}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -201,17 +145,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_11_accuracy_tracking}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -232,13 +166,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_12_aggregate_gold}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -259,17 +187,7 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_13_budget_comparison}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       },
       {
@@ -302,38 +220,10 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_14_build_reporting_view}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "gold_lakehouse_id": {
-              "value": "@pipeline().parameters.gold_lakehouse_id",
-              "type": "string"
-            },
-            "bronze_lakehouse_id": {
-              "value": "@pipeline().parameters.bronze_lakehouse_id",
-              "type": "string"
-            },
-            "silver_lakehouse_id": {
-              "value": "@pipeline().parameters.silver_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       }
     ],
-    "parameters": {
-      "bronze_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{BRONZE_LH}}"
-      },
-      "silver_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{SILVER_LH}}"
-      },
-      "gold_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{GOLD_LH}}"
-      }
-    },
     "annotations": []
   }
 }

@@ -2,19 +2,14 @@
 # 05_score_forecast.py -- Forward forecasting with all enabled models
 # Phase 1: Core Capability
 
-# @parameters
-silver_lakehouse_id = ""
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/scoring_module
 
 
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 import pandas as pd
 

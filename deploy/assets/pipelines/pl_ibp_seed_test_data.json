@@ -13,22 +13,10 @@
         },
         "typeProperties": {
           "notebookId": "{{NB_00_generate_test_data}}",
-          "workspaceId": "{{WORKSPACE_ID}}",
-          "parameters": {
-            "source_lakehouse_id": {
-              "value": "@pipeline().parameters.source_lakehouse_id",
-              "type": "string"
-            }
-          }
+          "workspaceId": "{{WORKSPACE_ID}}"
         }
       }
     ],
-    "parameters": {
-      "source_lakehouse_id": {
-        "type": "string",
-        "defaultValue": "{{SOURCE_LH}}"
-      }
-    },
     "annotations": []
   }
 }

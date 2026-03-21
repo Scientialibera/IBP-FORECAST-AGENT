@@ -2,11 +2,6 @@
 # 07_demand_to_capacity.py -- Translate tons -> lineal feet -> production hours
 # Phase 1: Core Capability
 
-# @parameters
-gold_lakehouse_id = ""
-bronze_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
@@ -14,8 +9,8 @@ bronze_lakehouse_id = ""
 # %run ../modules/capacity_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
 
 forecast_table = cfg("output_table")
 capacity_output_table = cfg("capacity_output_table")

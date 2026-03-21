@@ -2,17 +2,12 @@
 # 02_transform_bronze.py -- Landing -> Bronze cleansing and standardization
 # Phase 1: Core Capability
 
-# @parameters
-landing_lakehouse_id = ""
-bronze_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
 
-landing_lakehouse_id = resolve_lakehouse_id(landing_lakehouse_id, "landing")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+landing_lakehouse_id = resolve_lakehouse_id("", "landing")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
 
 from pyspark.sql import functions as F
 

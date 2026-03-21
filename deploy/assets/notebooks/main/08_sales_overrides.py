@@ -2,11 +2,6 @@
 # 08_sales_overrides.py -- Apply sales override layer on top of statistical baseline
 # Phase 1: Core Capability -- Sales inputs are auditable
 
-# @parameters
-gold_lakehouse_id = ""
-bronze_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
@@ -14,8 +9,8 @@ bronze_lakehouse_id = ""
 # %run ../modules/override_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
 
 forecast_table = cfg("output_table")
 overrides_table = cfg("overrides_table")

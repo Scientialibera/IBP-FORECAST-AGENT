@@ -2,15 +2,11 @@
 # 12_aggregate_gold.py -- Hierarchical roll-ups for drill-down views
 # Phase 1: Core Capability
 
-# @parameters
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 from pyspark.sql import functions as F
 

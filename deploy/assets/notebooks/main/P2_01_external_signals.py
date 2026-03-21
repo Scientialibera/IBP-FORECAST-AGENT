@@ -2,20 +2,14 @@
 # P2_01_external_signals.py -- Ingest and correlate external market signals
 # Phase 2: Advanced Capability
 
-# @parameters
-silver_lakehouse_id = ""
-bronze_lakehouse_id = ""
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 
 
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 import pandas as pd
 import numpy as np

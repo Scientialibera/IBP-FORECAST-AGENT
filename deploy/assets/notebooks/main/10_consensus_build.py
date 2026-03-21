@@ -2,10 +2,6 @@
 # 10_consensus_build.py -- Build final consensus forecast from all layers
 # Phase 1: Core Capability -- system + sales_delta * market_factor
 
-# @parameters
-gold_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
@@ -13,7 +9,7 @@ gold_lakehouse_id = ""
 # %run ../modules/override_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
 
 forecast_table = cfg("output_table")
 grain_columns = cfg("grain_columns")

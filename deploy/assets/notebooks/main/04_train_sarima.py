@@ -2,17 +2,13 @@
 # 04_train_sarima.py -- Train SARIMA per grain on Silver feature table
 # Phase 1: Required model
 
-# @parameters
-silver_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/train_sarima_module
 
 
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
 
 date_column = cfg("feature_date_column")
 target_column = cfg("target_column")

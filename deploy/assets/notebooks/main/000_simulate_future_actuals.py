@@ -14,8 +14,6 @@
 #   4. Check accuracy_tracking table + reporting view in the semantic model
 
 # @parameters
-source_lakehouse_id = ""
-silver_lakehouse_id = ""
 simulate_weeks = 12
 noise_pct = 0.10
 seed = 99
@@ -26,8 +24,8 @@ seed = 99
 # %run ../modules/schemas_module
 
 
-source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+source_lakehouse_id = resolve_lakehouse_id("", "source")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
 
 import pandas as pd
 import numpy as np

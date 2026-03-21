@@ -2,17 +2,12 @@
 # 01_ingest_sources.py -- Ingest source tables into Landing lakehouse
 # Phase 1: Core Capability
 
-# @parameters
-source_lakehouse_id = ""
-landing_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 
 
-source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
-landing_lakehouse_id = resolve_lakehouse_id(landing_lakehouse_id, "landing")
+source_lakehouse_id = resolve_lakehouse_id("", "source")
+landing_lakehouse_id = resolve_lakehouse_id("", "landing")
 
 source_tables = cfg("source_tables")
 

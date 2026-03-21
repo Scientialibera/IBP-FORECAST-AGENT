@@ -1,21 +1,15 @@
 # Fabric Notebook
 # 14_build_reporting_view.py
 
-# @parameters
-gold_lakehouse_id = ""
-bronze_lakehouse_id = ""
-silver_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
 # %run ../modules/schemas_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+gold_lakehouse_id = resolve_lakehouse_id("", "gold")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
 
 import pandas as pd
 import numpy as np

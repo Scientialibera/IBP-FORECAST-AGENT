@@ -2,18 +2,13 @@
 # 03_feature_engineering.py -- Bronze -> Silver feature table
 # Phase 1: Core Capability
 
-# @parameters
-bronze_lakehouse_id = ""
-silver_lakehouse_id = ""
-# @end_parameters
-
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/feature_engineering_module
 
 
-bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
-silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
+bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
+silver_lakehouse_id = resolve_lakehouse_id("", "silver")
 
 date_column = cfg("date_column")
 frequency = cfg("frequency")
