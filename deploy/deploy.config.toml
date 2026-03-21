@@ -59,6 +59,7 @@ feature_types   = ["float", "float", "int", "float"]
 
 [training]
 test_split_ratio          = 0.2
+models_enabled            = ["sarima", "prophet", "var", "exp_smoothing", "lightgbm"]
 
 # SARIMA (required)
 sarima_order              = [1, 1, 1]
@@ -74,6 +75,13 @@ var_ic                    = "aic"
 # Exponential Smoothing (preferred)
 exp_smoothing_trend             = "add"
 exp_smoothing_seasonal          = "add"
+
+# LightGBM (global pooled)
+lightgbm_n_estimators           = 800
+lightgbm_max_depth              = 7
+lightgbm_learning_rate          = 0.02
+lightgbm_num_leaves             = 40
+lightgbm_min_child_samples      = 10
 
 [mlflow]
 experiment_name          = "ibp_demand_forecast"

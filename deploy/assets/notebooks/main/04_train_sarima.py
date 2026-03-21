@@ -40,6 +40,6 @@ results_df, agg_metrics = train_sarima_per_grain(
 
 if not results_df.empty:
     preds_spark = spark.createDataFrame(results_df)
-    write_lakehouse_table(preds_spark, silver_lakehouse_id, cfg("prediction_tables")[0], mode="overwrite")
+    write_lakehouse_table(preds_spark, silver_lakehouse_id, prediction_table_for("sarima"), mode="overwrite")
 
 logger.info("[sarima] Complete.")

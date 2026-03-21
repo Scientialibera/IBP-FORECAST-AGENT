@@ -21,7 +21,7 @@ Lakehouse-driven, AI-powered IBP (Integrated Business Planning) forecasting fram
 ```mermaid
 flowchart LR
     Sources -->|01| Landing -->|02| Bronze -->|03| Silver
-    Silver -->|04| Train[SARIMA / Prophet / VAR / ETS<br/>+ Hyperparameter Tuning<br/>+ MLflow Model Logging]
+    Silver -->|04| Train[SARIMA / Prophet / VAR / ETS / LightGBM<br/>+ Hyperparameter Tuning<br/>+ MLflow Model Logging]
     Train -->|05| Score[Load Models from MLflow<br/>Forward Forecast]
     Score -->|06| Gold[Versioned Forecasts]
     Gold -->|07| Capacity[Tons → LF → Hours]
@@ -50,13 +50,21 @@ See [docs/architecture/](docs/architecture/) for detailed Mermaid diagrams.
 
 The pipeline follows a strict **train-log-score** pattern with no silent fallbacks:
 
-1. **Train (04_train_*)**: Each model type trains per grain, optionally runs randomized grid search for hyperparameter tuning, evaluates on a holdout split, then **refits on full data** and pickles all grain models into a single artifact.
+1. **Train (04_train_*)**: Each model type trains per grain (or globally for LightGBM), optionally runs randomized grid search for hyperparameter tuning, evaluates on a holdout split, then **refits on full data** and pickles all grain models into a single artifact.
 2. **Log**: The pickled model dict is logged to MLflow as an artifact alongside aggregate metrics and best-params-per-grain.
-3. **Score (05_score_forecast)**: Loads the pickled models from MLflow by searching for the latest matching run. **No fallback refit** -- if models aren't found, the notebook fails hard so you know training didn't run.
+3. **Score (05_score_forecast)**: Iterates over `models_enabled` from config, loads each model's pickled artifacts from MLflow by searching for the latest matching run. **No fallback refit** -- if models aren't found, the notebook fails hard so you know training didn't run.
+
+Which models are trained and scored is controlled by a single config list:
+
+```python
+"models_enabled": ["sarima", "prophet", "var", "exp_smoothing", "lightgbm"]
+```
+
+Remove a model from this list to disable it everywhere — training, scoring, and reporting. The pipeline generator (`generate_pipelines.py`) reads the same list from `deploy.config.toml` to create the correct pipeline activities.
 
 ## Hyperparameter Tuning
 
-All four model types support **per-grain randomized grid search** with expanding-window time-series cross-validation. Controlled via `ibp_config.py`:
+The four statistical model types support **per-grain randomized grid search** with expanding-window time-series cross-validation. Controlled via `ibp_config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -144,7 +152,7 @@ Pipelines are modular so you can train independently from scoring:
 | Pipeline | Activities | Purpose |
 |----------|-----------|---------|
 | `pl_ibp_seed_test_data` | 1 | Generate synthetic test data (run once) |
-| `pl_ibp_train` | 7 | Ingest → Bronze → Features → Train 4 models in parallel |
+| `pl_ibp_train` | 8 | Ingest → Bronze → Features → Train 5 models in parallel |
 | `pl_ibp_score` | 10 | Score → Version (CDC) → Capacity/Overrides/Adjustments → Consensus → Accuracy/Rollups/Budget → Reporting |
 | `pl_ibp_refresh_model` | 2 | Create/update DirectLake semantic model + create/update Power BI backtest report |
 | `pl_ibp_score_and_refresh` | 2 | Orchestrator: runs `pl_ibp_score` then `pl_ibp_refresh_model` sequentially |
@@ -174,12 +182,13 @@ Typical workflow:
 | 04 | `04_train_prophet` | Silver | Prophet per grain + tuning + MLflow (parallel) |
 | 04 | `04_train_var` | Silver | VAR multivariate + tuning + MLflow (parallel) |
 | 04 | `04_train_exp_smoothing` | Silver | Holt-Winters per grain + tuning + MLflow (parallel) |
+| 04 | `04_train_lightgbm` | Silver | LightGBM global pooled + MLflow (parallel) |
 
 ### Scoring Pipeline (`pl_ibp_score`)
 
 | # | Notebook | Layer | Description |
 |---|----------|-------|-------------|
-| 05 | `05_score_forecast` | Silver | Load MLflow models, forward forecast all 4 types |
+| 05 | `05_score_forecast` | Silver | Load MLflow models, forward forecast all enabled models |
 | 06 | `06_version_snapshot` | Gold | Stamp version_id + snapshot_month (with CDC -- skips if no changes) |
 | 07 | `07_demand_to_capacity` | Gold | Tons → lineal feet → production hours |
 | 08 | `08_sales_overrides` | Gold | Apply sales team adjustments |
@@ -219,6 +228,7 @@ Typical workflow:
 | `train_prophet_module` | Prophet training + tuning + MLflow model persistence |
 | `train_var_module` | VAR multivariate training + tuning + MLflow model persistence |
 | `train_exp_smoothing_module` | Holt-Winters training + tuning + MLflow model persistence |
+| `train_lightgbm_module` | LightGBM global pooled training + MLflow model persistence |
 | `scoring_module` | Load models from MLflow, forward forecast (no fallback refit) |
 | `versioning_module` | Version stamping, snapshot management, purge logic |
 | `capacity_module` | Rolling production averages, tons→LF→hours translation |
@@ -236,7 +246,7 @@ Typical workflow:
 | `budget_comparison` | Forecast vs. budget with over/under flags |
 | `aggregated_forecast` | Hierarchical roll-ups per version type |
 | `reporting_actuals_vs_forecast` | Unified view: actual tons + forecast tons + error metrics + future flag |
-| `backtest_predictions` | Union of SARIMA/Prophet/ETS backtest predictions with error metrics |
+| `backtest_predictions` | Union of all enabled models' backtest predictions with error metrics |
 | `scenario_forecasts` | Side-by-side scenario results |
 | `sku_classifications` | ABC/XYZ + runner/repeater/stranger |
 | `inventory_aligned_forecast` | FG inventory coverage, net requirements |
@@ -329,6 +339,12 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 | `sarima_seasonal_s` | 12 | 52 | 7 |
 | `tuning_grid_maxlags` | [4,6,8,12] | [4,8,13,26] | [7,14,30] |
 
+### Enabled Models
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `models_enabled` | `["sarima", "prophet", "var", "exp_smoothing", "lightgbm"]` | Which models to train, score, and include in reporting. Also controls pipeline activities via `deploy.config.toml`. |
+
 ### Forecasting
 
 | Parameter | Default | Description |
@@ -348,7 +364,7 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 |-----------|---------|-------------|
 | `prophet_yearly_seasonality` | `True` | Enable yearly seasonality component |
 | `prophet_weekly_seasonality` | `False` | Enable weekly seasonality (disabled for monthly data) |
-| `prophet_changepoint_prior` | `0.05` | Flexibility of trend changepoints (higher = more flexible) |
+| `prophet_changepoint_prior` | `0.30` | Flexibility of trend changepoints (higher = more flexible) |
 
 ### VAR (Vector Autoregression)
 
@@ -364,6 +380,18 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 | `exp_smoothing_trend` | `"add"` | Trend component type (add, mul, None) |
 | `exp_smoothing_seasonal` | `"add"` | Seasonal component type (add, mul, None) |
 | `exp_smoothing_seasonal_periods` | derived | Number of periods in a seasonal cycle (auto-set by `freq_params()`: M=12, W=52, D=365) |
+
+### LightGBM (Global Pooled)
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `lightgbm_n_estimators` | `800` | Number of boosting rounds |
+| `lightgbm_max_depth` | `7` | Maximum tree depth |
+| `lightgbm_learning_rate` | `0.02` | Boosting learning rate |
+| `lightgbm_num_leaves` | `40` | Maximum number of leaves per tree |
+| `lightgbm_min_child_samples` | `10` | Minimum samples per leaf node |
+
+LightGBM trains a single global model pooled across all grains (with label-encoded grain IDs as features). Feature columns are derived automatically from `freq_params()` — lag features, rolling statistics, calendar features, and domain features. For forward scoring, predictions are generated recursively: each step's prediction is fed back as lag input for the next step.
 
 ### Hyperparameter Tuning
 
@@ -415,7 +443,7 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 | `feature_table` | `"feature_table"` | Silver table produced by feature engineering |
 | `raw_forecasts_table` | `"raw_forecasts"` | Silver table holding combined raw model forecasts |
 | `primary_table` | `"orders"` | Primary demand table used for actuals comparison |
-| `prediction_tables` | `["sarima_predictions", "prophet_predictions", "var_predictions", "exp_smoothing_predictions"]` | Per-model prediction tables in silver (order matters -- index maps to each model) |
+| `prediction_tables` | derived from `models_enabled` | Per-model prediction tables in silver (auto-generated as `{model}_predictions`). Use `prediction_table_for("model_type")` helper. |
 | `backtest_predictions_table` | `"backtest_predictions"` | Gold table with unioned backtest predictions from all models |
 | `dimension_tables` | `["master_sku", "master_plant"]` | Dimension tables copied from bronze to gold for reporting joins |
 | `model_recommendations_table` | `"model_recommendations"` | Gold table with recommended model per grain based on accuracy |

@@ -14,10 +14,18 @@ All other config lives in the centralized ibp_config notebook module.
 Pipeline definitions use {{PLACEHOLDER}} tokens replaced at deploy time.
 """
 
-import json, pathlib
+import json, pathlib, tomllib
 
 OUT_DIR = pathlib.Path(__file__).parent / "assets" / "pipelines"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+CONFIG_PATH = pathlib.Path(__file__).parent / "deploy.config.toml"
+with open(CONFIG_PATH, "rb") as _f:
+    _deploy_cfg = tomllib.load(_f)
+
+MODELS_ENABLED = _deploy_cfg.get("training", {}).get(
+    "models_enabled", ["sarima", "prophet", "var", "exp_smoothing"]
+)
 
 WS = "{{WORKSPACE_ID}}"
 SRC = "{{SOURCE_LH}}"
@@ -141,7 +149,7 @@ train_acts = [
     }, depends_on=["02_transform_bronze"]),
 ]
 
-for model in ["sarima", "prophet", "var", "exp_smoothing"]:
+for model in MODELS_ENABLED:
     train_acts.append(nb_activity(
         f"04_train_{model}", f"04_train_{model}", {
             "silver_lakehouse_id": P("silver_lakehouse_id"),

@@ -217,3 +217,95 @@ def forecast_ets_forward(df: pd.DataFrame, date_column: str, grain_columns: list
     if skipped:
         logger.warning(f"[scoring] ETS: skipped {skipped} grains (no trained model)")
     return pd.DataFrame(results)
+
+
+def forecast_lightgbm_forward(df: pd.DataFrame, date_column: str, grain_columns: list,
+                               target_column: str, horizon: int,
+                               experiment_name: str = "") -> pd.DataFrame:
+    """Load global LightGBM model from MLflow and forecast forward recursively.
+
+    At each step the prediction is appended to the history buffer so that
+    lag and rolling features can be recomputed for the next step.
+    """
+    model_data = _load_grain_models(experiment_name, "lightgbm", "lightgbm_model.pkl")
+    model = model_data["model"]
+    feature_cols = model_data["feature_cols"]
+    label_encoders = model_data["label_encoders"]
+
+    lags = freq_params("default_lags")
+    rolling_wins = freq_params("default_rolling")
+    domain_cols = cfg("feature_columns")
+    ppy = freq_params("periods_per_year")
+    freq = cfg("frequency")
+
+    results = []
+    groups = df.groupby(grain_columns)
+
+    for grain_key, group in groups:
+        if isinstance(grain_key, str):
+            grain_key = (grain_key,)
+
+        group_sorted = group.sort_values(date_column)
+        last_period = group_sorted["period"].iloc[-1]
+        history = group_sorted[target_column].dropna().values.tolist()
+        last_row = group_sorted.iloc[-1]
+
+        grain_enc = {}
+        for i, gc in enumerate(grain_columns):
+            enc_col = f"{gc}_enc"
+            if enc_col in feature_cols:
+                le = label_encoders.get(gc)
+                try:
+                    grain_enc[enc_col] = le.transform([grain_key[i]])[0]
+                except (ValueError, KeyError):
+                    grain_enc[enc_col] = -1
+
+        future_dates = _future_dates(last_period, horizon)
+
+        for fut_date in future_dates:
+            features = {}
+
+            for l in lags:
+                features[f"{target_column}_lag_{l}"] = (
+                    history[-l] if len(history) >= l else np.nan
+                )
+
+            for w in rolling_wins:
+                window = history[-w:] if len(history) >= w else history
+                features[f"{target_column}_roll_mean_{w}"] = (
+                    np.mean(window) if window else 0
+                )
+                features[f"{target_column}_roll_std_{w}"] = (
+                    np.std(window) if len(window) > 1 else 0
+                )
+
+            if freq == "D":
+                period_of_year = fut_date.dayofyear
+            elif freq == "W":
+                period_of_year = fut_date.isocalendar()[1]
+            else:
+                period_of_year = fut_date.month
+            features["month_sin"] = np.sin(2 * np.pi * period_of_year / ppy)
+            features["month_cos"] = np.cos(2 * np.pi * period_of_year / ppy)
+            features["quarter"] = (fut_date.month - 1) // 3 + 1
+
+            for dc in domain_cols:
+                features[dc] = (
+                    float(last_row[dc]) if dc in last_row.index else 0
+                )
+
+            features.update(grain_enc)
+
+            X = np.array([[features.get(c, 0) for c in feature_cols]])
+            X = np.nan_to_num(X, nan=0.0)
+            pred = max(0, float(model.predict(X)[0]))
+
+            history.append(pred)
+            row = {"period": str(fut_date.date()), "forecast_tons": pred,
+                   "model_type": "lightgbm"}
+            for k, gc in enumerate(grain_columns):
+                row[gc] = grain_key[k] if k < len(grain_key) else ""
+            results.append(row)
+
+    logger.info(f"[scoring] LightGBM: {len(results)} forecast rows")
+    return pd.DataFrame(results)

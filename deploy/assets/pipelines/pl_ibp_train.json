@@ -195,6 +195,33 @@
             }
           }
         }
+      },
+      {
+        "name": "04_train_lightgbm",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "03_feature_engineering",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_04_train_lightgbm}}",
+          "workspaceId": "{{WORKSPACE_ID}}",
+          "parameters": {
+            "silver_lakehouse_id": {
+              "value": "@pipeline().parameters.silver_lakehouse_id",
+              "type": "string"
+            }
+          }
+        }
       }
     ],
     "parameters": {

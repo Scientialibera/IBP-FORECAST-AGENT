@@ -82,6 +82,11 @@ IBP_CONFIG = {
                           "sales_overrides", "market_adjustments",
                           "external_signals", "scenario_definitions"],
 
+    # ── Enabled Models ────────────────────────────────────────────
+    # Controls which 04_train_* notebooks run, which models are scored,
+    # and which prediction tables are unioned for reporting.
+    "models_enabled": ["sarima", "prophet", "var", "exp_smoothing", "lightgbm"],
+
     # ── Forecasting ──────────────────────────────────────────────
     "forecast_horizon":    6,
     "test_split_ratio":    0.2,
@@ -100,6 +105,13 @@ IBP_CONFIG = {
     # ── Exponential Smoothing ────────────────────────────────────
     "exp_smoothing_trend":            "add",
     "exp_smoothing_seasonal":         "add",
+
+    # ── LightGBM (global pooled) ─────────────────────────────────
+    "lightgbm_n_estimators":      800,
+    "lightgbm_max_depth":         7,
+    "lightgbm_learning_rate":     0.02,
+    "lightgbm_num_leaves":        40,
+    "lightgbm_min_child_samples": 10,
 
     # ── Hyperparameter Tuning ──────────────────────────────────────
     "tuning_enabled":       True,
@@ -133,8 +145,7 @@ IBP_CONFIG = {
     "feature_table":            "feature_table",
     "raw_forecasts_table":      "raw_forecasts",
     "primary_table":            "orders",
-    "prediction_tables":        ["sarima_predictions", "prophet_predictions",
-                                 "var_predictions", "exp_smoothing_predictions"],
+    "prediction_tables":        [],  # derived from models_enabled after dict init
     "backtest_predictions_table": "backtest_predictions",
     "dimension_tables":         ["master_sku", "master_plant"],
     "model_recommendations_table": "model_recommendations",
@@ -214,6 +225,15 @@ IBP_CONFIG = {
     "price_elasticity_range": [-0.8, -0.3],
     "promo_lift_range":     [0.15, 0.40],
 }
+
+
+# Derive prediction_tables from models_enabled
+IBP_CONFIG["prediction_tables"] = [f"{m}_predictions" for m in IBP_CONFIG["models_enabled"]]
+
+
+def prediction_table_for(model_type: str) -> str:
+    """Return the silver prediction table name for a given model type."""
+    return f"{model_type}_predictions"
 
 
 def cfg(key: str, override=None):
