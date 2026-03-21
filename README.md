@@ -170,6 +170,7 @@ Typical workflow:
 | # | Notebook | Description |
 |---|----------|-------------|
 | 00 | `00_generate_test_data` | Generate 42 months of realistic synthetic data for all source tables |
+| 000 | `000_simulate_future_actuals` | Inject fake future actuals to test accuracy tracking (see below) |
 
 ### Training Pipeline (`pl_ibp_train`)
 
@@ -234,6 +235,7 @@ Typical workflow:
 | `capacity_module` | Rolling production averages, tons→LF→hours translation |
 | `override_module` | Sales override application, market adjustment, consensus builder |
 | `accuracy_module` | Retrospective accuracy evaluation |
+| `schemas_module` | Single source of truth for ALL table schemas (source, silver, gold, phase 2), semantic model BIM generation, PySpark StructType helpers |
 
 ## Gold Tables Produced
 
@@ -245,6 +247,7 @@ Typical workflow:
 | `capacity_translation` | Tons, lineal feet, production hours per plant/SKU/line |
 | `budget_comparison` | Forecast vs. budget with over/under flags |
 | `aggregated_forecast` | Hierarchical roll-ups per version type |
+| `forecast_waterfall` | Wide-format: baseline + sales_delta + market_factor + consensus + actuals per grain/period |
 | `raw_forecasts` | Forward forecasts from all enabled models (pre-versioning) |
 | `reporting_actuals_vs_forecast` | Unified view: actual tons + forecast tons + error metrics + future flag |
 | `backtest_predictions` | Union of all enabled models' backtest predictions with error metrics |
@@ -258,9 +261,11 @@ Typical workflow:
 
 Notebook `15_refresh_semantic_model` creates or updates a DirectLake semantic model over the gold lakehouse via the Fabric REST API, then triggers a full refresh. It is **not** created at infrastructure deployment -- only the `semantic_models/` folder is created by the deploy script. The model itself is created/updated by the notebook when triggered by the `pl_ibp_refresh_model` pipeline.
 
+All table schemas, BIM column definitions, DAX measures, and relationships are defined in a single module: `schemas_module.py`. Notebook 15 calls `build_bim(sql_endpoint, lakehouse_name)` to generate the full BIM JSON — **no inline schema definitions in any notebook**.
+
 Notebook 15 also configures a **scheduled refresh** for the semantic model (default: daily at 06:00 UTC). This is controlled via `ibp_config.py` under `refresh_schedule_*` keys.
 
-**Tables**: Reporting Actuals vs Forecast, Forecast Versions, Backtest Predictions, Raw Forecasts, Master SKU, Master Plant, Capacity Translation
+**Tables**: Forecast Versions, Reporting Actuals vs Forecast, Master SKU, Master Plant, Capacity Translation, Backtest Predictions, Forecast Waterfall, Accuracy Tracking
 
 **Pre-built DAX Measures**:
 - Total Forecast Tons / Total Actual Tons / Total Variance
@@ -274,7 +279,7 @@ Notebook 15 also configures a **scheduled refresh** for the semantic model (defa
 
 See [SEMANTIC_MODEL.md](SEMANTIC_MODEL.md) for the full semantic model schema (tables, columns, measures, relationships).
 
-Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold, builds the unified actuals-vs-forecast table, copies `raw_forecasts` from silver to gold, and unions backtest prediction tables from silver into `backtest_predictions` in gold.
+Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from bronze to gold, builds the unified actuals-vs-forecast table, copies `raw_forecasts` from silver to gold, unions backtest prediction tables from silver into `backtest_predictions` in gold, and ensures required Delta tables exist using `spark_schema()` from `schemas_module`.
 
 ## Backtest Report
 
@@ -315,6 +320,23 @@ The framework includes built-in accuracy tracking that compares prior prediction
 ### When New Actuals Arrive
 
 The pipeline is batch-driven (scheduled or manual trigger). Each run re-reads the current state of actuals from bronze — so any new data that has landed since the last run is automatically picked up. There is no event-driven trigger; the comparison happens every time the scoring pipeline runs. For "real-time" monitoring, schedule the pipeline to run at the desired frequency (daily, weekly, etc.) via the Fabric pipeline scheduler or the semantic model's scheduled refresh.
+
+### Testing with Simulated Actuals
+
+Notebook `000_simulate_future_actuals` lets you test the accuracy tracking loop without waiting for real data:
+
+1. **Run the full pipeline** — `pl_ibp_train` → `pl_ibp_score_and_refresh` (generates 52-week forward forecasts)
+2. **Run `000_simulate_future_actuals`** — reads forward forecasts, generates fake actuals for the first N weeks (default 12) by adding ±10% noise to predictions, appends to source orders table
+3. **Re-run `pl_ibp_score_and_refresh`** — ingest picks up new actuals, accuracy tracking compares them against the original predictions
+4. **Check results** — `accuracy_tracking` table shows per-grain/per-model MAPE, bias, RMSE for the overlap periods; `reporting_actuals_vs_forecast` flips previously-future rows to have actual values
+
+Parameters (set via pipeline or notebook UI):
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `simulate_weeks` | `12` | Number of future weeks to generate actuals for |
+| `noise_pct` | `0.10` | Noise level (±10% by default) |
+| `seed` | `99` | Random seed for reproducibility |
 
 ## Configuration Reference
 
@@ -690,7 +712,7 @@ After deployment, trigger pipelines from the Fabric UI or via the REST API:
 
 - **No silent fallbacks**: if models aren't trained, scoring fails loud
 - **Enterprise config**: all non-lakehouse params centralized in `ibp_config.py`, lakehouse IDs injected at deploy time via parameter cells
-- **Single source of truth**: `.py` files in `assets/notebooks/` are the only files you edit; `build/` is auto-generated and gitignored
+- **Single source of truth**: `.py` files in `assets/notebooks/` are the only files you edit; `build/` is auto-generated and gitignored. All table schemas are centralized in `schemas_module.py` — no inline schema definitions in any notebook
 - **Append-only versioning**: baselines are never overwritten, all layers preserved
 - **Change Data Capture**: `06_version_snapshot` hashes forecast data and skips creating a new version if content hasn't changed
 - **MLflow-native**: models persisted and loaded via MLflow artifacts, metrics tracked per run

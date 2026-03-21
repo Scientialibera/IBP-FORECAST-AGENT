@@ -17,6 +17,7 @@ source_lakehouse_id = ""
 
 # %run ../modules/ibp_config
 # %run ../modules/config_module
+# %run ../modules/schemas_module
 
 
 source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
@@ -24,6 +25,16 @@ source_lakehouse_id = resolve_lakehouse_id(source_lakehouse_id, "source")
 import pandas as pd
 import numpy as np
 from datetime import datetime
+
+
+def _validated_write(df, table_name, lid=None):
+    """Select only the columns defined in schemas_module, then write."""
+    lid = lid or source_lakehouse_id
+    expected = column_names(table_name)
+    present = [c for c in expected if c in df.columns]
+    sdf = spark.createDataFrame(df[present])
+    write_lakehouse_table(sdf, lid, table_name, mode="overwrite")
+    return len(df)
 
 # ── Config ──────────────────────────────────────────────────────
 N_SKUS = int(cfg("n_skus") or 50)
@@ -95,27 +106,22 @@ for i in range(N_LINES):
 
 # Write master tables
 logger.info("[test_data] Writing master tables...")
-master_sku_df = spark.createDataFrame(pd.DataFrame(skus))
-write_lakehouse_table(master_sku_df, source_lakehouse_id, "master_sku", mode="overwrite")
+_validated_write(pd.DataFrame(skus), "master_sku")
 
-master_plant_df = spark.createDataFrame(pd.DataFrame([
+_validated_write(pd.DataFrame([
     {"plant_id": p, "plant_name": n, "region": r,
      "capacity_tons_month": round(np.random.uniform(5000, 20000), 0)}
     for p, n, r in zip(plants, plant_names, plant_regions)
-]))
-write_lakehouse_table(master_plant_df, source_lakehouse_id, "master_plant", mode="overwrite")
+]), "master_plant")
 
-master_customer_df = spark.createDataFrame(pd.DataFrame(customers))
-write_lakehouse_table(master_customer_df, source_lakehouse_id, "master_customer", mode="overwrite")
+_validated_write(pd.DataFrame(customers), "master_customer")
 
-master_market_df = spark.createDataFrame(pd.DataFrame([
+_validated_write(pd.DataFrame([
     {"market_id": m, "market_name": n, "market_segment": s}
     for m, n, s in zip(markets, market_names, market_segments)
-]))
-write_lakehouse_table(master_market_df, source_lakehouse_id, "master_market", mode="overwrite")
+]), "master_market")
 
-prod_lines_df = spark.createDataFrame(pd.DataFrame(lines))
-write_lakehouse_table(prod_lines_df, source_lakehouse_id, "production_lines", mode="overwrite")
+_validated_write(pd.DataFrame(lines), "production_lines")
 
 logger.info(f"  master_sku: {len(skus)}, master_plant: {N_PLANTS}, "
             f"master_customer: {N_CUSTOMERS}, master_market: {N_MARKETS}, "
@@ -293,8 +299,7 @@ for group in sku_groups:
         adjustment = -cannib_factor * deviations
         orders_df.loc[mask, "tons"] = np.maximum(0, group_tons + adjustment).round(2)
 
-orders_spark = spark.createDataFrame(orders_df)
-write_lakehouse_table(orders_spark, source_lakehouse_id, "orders", mode="overwrite")
+_validated_write(orders_df, "orders")
 logger.info(f"  orders: {len(orders_df)} rows")
 
 
@@ -310,8 +315,7 @@ shipments_df["tons"] = (shipments_df["tons"] * fulfillment).round(2)
 lag_days = 7 if FREQ == "M" else (2 if FREQ == "W" else 1)
 shipments_df["shipped_date"] = (pd.to_datetime(shipments_df["period_date"])
                                  + pd.Timedelta(days=lag_days)).astype(str)
-shipments_spark = spark.createDataFrame(shipments_df)
-write_lakehouse_table(shipments_spark, source_lakehouse_id, "shipments", mode="overwrite")
+_validated_write(shipments_df, "shipments")
 logger.info(f"  shipments: {len(shipments_df)} rows")
 
 
@@ -346,8 +350,7 @@ for sku in skus:
         })
 
 prod_history_df = pd.DataFrame(prod_rows)
-prod_spark = spark.createDataFrame(prod_history_df)
-write_lakehouse_table(prod_spark, source_lakehouse_id, "production_history", mode="overwrite")
+_validated_write(prod_history_df, "production_history")
 logger.info(f"  production_history: {len(prod_history_df)} rows")
 
 
@@ -377,8 +380,7 @@ for sku in skus:
         })
 
 budget_df = pd.DataFrame(budget_rows)
-budget_spark = spark.createDataFrame(budget_df)
-write_lakehouse_table(budget_spark, source_lakehouse_id, "budget_volumes", mode="overwrite")
+_validated_write(budget_df, "budget_volumes")
 logger.info(f"  budget_volumes: {len(budget_df)} rows")
 
 
@@ -400,8 +402,7 @@ for sku in skus:
     })
 
 inv_df = pd.DataFrame(inv_rows)
-inv_spark = spark.createDataFrame(inv_df)
-write_lakehouse_table(inv_spark, source_lakehouse_id, "inventory_finished_goods", mode="overwrite")
+_validated_write(inv_df, "inventory_finished_goods")
 logger.info(f"  inventory_finished_goods: {len(inv_df)} rows")
 
 
@@ -425,8 +426,7 @@ for i in range(30):
     })
 
 override_df = pd.DataFrame(override_rows)
-override_spark = spark.createDataFrame(override_df)
-write_lakehouse_table(override_spark, source_lakehouse_id, "sales_overrides", mode="overwrite")
+_validated_write(override_df, "sales_overrides")
 logger.info(f"  sales_overrides: {len(override_df)} rows")
 
 
@@ -445,8 +445,7 @@ for market_id in markets:
         })
 
 adj_df = pd.DataFrame(adj_rows)
-adj_spark = spark.createDataFrame(adj_df)
-write_lakehouse_table(adj_spark, source_lakehouse_id, "market_adjustments", mode="overwrite")
+_validated_write(adj_df, "market_adjustments")
 logger.info(f"  market_adjustments: {len(adj_df)} rows")
 
 
@@ -466,8 +465,7 @@ for date in dates:
     })
 
 signal_df = pd.DataFrame(signal_rows)
-signal_spark = spark.createDataFrame(signal_df)
-write_lakehouse_table(signal_spark, source_lakehouse_id, "external_signals", mode="overwrite")
+_validated_write(signal_df, "external_signals")
 logger.info(f"  external_signals: {len(signal_df)} rows")
 
 
@@ -481,8 +479,7 @@ scenario_df = pd.DataFrame([
     {"scenario_name": "ncca_plus_imports", "filter_type": "market_segment",
      "filter_value": "imports", "include": True},
 ])
-scenario_spark = spark.createDataFrame(scenario_df)
-write_lakehouse_table(scenario_spark, source_lakehouse_id, "scenario_definitions", mode="overwrite")
+_validated_write(scenario_df, "scenario_definitions")
 logger.info(f"  scenario_definitions: {len(scenario_df)} rows")
 
 

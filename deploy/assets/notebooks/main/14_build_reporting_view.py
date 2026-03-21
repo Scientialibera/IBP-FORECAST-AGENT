@@ -10,6 +10,7 @@ silver_lakehouse_id = ""
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
+# %run ../modules/schemas_module
 
 
 gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
@@ -93,15 +94,6 @@ historical_count = (~reporting["is_future"]).sum()
 logger.info(f"  Historical (actual+forecast): {historical_count}")
 logger.info(f"  Future (forecast only):       {future_count}")
 
-# ── Copy raw_forecasts from silver to gold for semantic model ────
-logger.info("[reporting] Copying raw_forecasts from silver to gold...")
-try:
-    rf_df = read_lakehouse_table(spark, silver_lakehouse_id, cfg("raw_forecasts_table"))
-    write_lakehouse_table(rf_df, gold_lakehouse_id, cfg("raw_forecasts_table"), mode="overwrite")
-    logger.info(f"  raw_forecasts: {rf_df.count()} rows copied to gold")
-except Exception as e:
-    logger.warning(f"  raw_forecasts: not found or empty -- {e}")
-
 # ── Union backtest predictions from silver into gold ─────────────
 backtest_predictions_table = cfg("backtest_predictions_table")
 logger.info("[reporting] Building backtest_predictions from silver prediction tables...")
@@ -134,5 +126,76 @@ if backtest_frames:
         logger.info(f"  {mt}: {len(grp)} rows, MAPE={mape:.1f}%")
 else:
     logger.warning("[reporting] No backtest prediction tables found in silver.")
+
+# ── Build forecast waterfall (baseline + modifiers as columns) ───
+logger.info("[reporting] Building forecast_waterfall (wide-format layers)...")
+try:
+    def _latest_version(df, vtype):
+        sub = df[df["version_type"] == vtype]
+        if sub.empty or "version_id" not in sub.columns:
+            return pd.DataFrame()
+        latest_vid = sub.sort_values("created_at", ascending=False)["version_id"].iloc[0] if "created_at" in sub.columns else sub["version_id"].iloc[0]
+        return sub[sub["version_id"] == latest_vid]
+
+    sys_df = _latest_version(fc_df, "system")
+    sales_df = _latest_version(fc_df, "sales")
+    mkt_df = _latest_version(fc_df, "market_adjusted")
+    cons_df = _latest_version(fc_df, "consensus")
+
+    merge_keys = grain_columns + [date_col]
+
+    if not sys_df.empty:
+        waterfall = sys_df[merge_keys + ["forecast_tons", "model_type", "snapshot_month"]].copy()
+        waterfall.rename(columns={"forecast_tons": "baseline_tons"}, inplace=True)
+
+        if not sales_df.empty:
+            sales_sub = sales_df[merge_keys + ["override_delta_tons"]].copy() if "override_delta_tons" in sales_df.columns else pd.DataFrame()
+            if not sales_sub.empty:
+                waterfall = waterfall.merge(sales_sub, on=merge_keys, how="left")
+        if "override_delta_tons" not in waterfall.columns:
+            waterfall["override_delta_tons"] = 0.0
+        waterfall["override_delta_tons"] = waterfall["override_delta_tons"].fillna(0.0)
+
+        if not mkt_df.empty:
+            mkt_sub = mkt_df[merge_keys + ["market_scale_factor"]].copy() if "market_scale_factor" in mkt_df.columns else pd.DataFrame()
+            if not mkt_sub.empty:
+                waterfall = waterfall.merge(mkt_sub, on=merge_keys, how="left")
+        if "market_scale_factor" not in waterfall.columns:
+            waterfall["market_scale_factor"] = 1.0
+        waterfall["market_scale_factor"] = waterfall["market_scale_factor"].fillna(1.0)
+
+        if not cons_df.empty:
+            cons_sub = cons_df[merge_keys + ["forecast_tons"]].copy()
+            cons_sub.rename(columns={"forecast_tons": "consensus_tons"}, inplace=True)
+            waterfall = waterfall.merge(cons_sub, on=merge_keys, how="left")
+        if "consensus_tons" not in waterfall.columns:
+            waterfall["consensus_tons"] = (waterfall["baseline_tons"] + waterfall["override_delta_tons"]) * waterfall["market_scale_factor"]
+
+        waterfall = waterfall.merge(
+            actuals_agg[merge_keys + ["actual_tons"]], on=merge_keys, how="left"
+        ) if not actuals_agg.empty else waterfall.assign(actual_tons=np.nan)
+
+        write_lakehouse_table(
+            spark.createDataFrame(waterfall), gold_lakehouse_id, "forecast_waterfall", mode="overwrite"
+        )
+        logger.info(f"[reporting] Wrote {len(waterfall)} rows to gold.forecast_waterfall")
+        logger.info(f"  Columns: {list(waterfall.columns)}")
+    else:
+        logger.warning("[reporting] No system baseline found -- skipping forecast_waterfall")
+except Exception as e:
+    logger.warning(f"[reporting] forecast_waterfall failed: {e}")
+
+# ── Ensure all semantic model tables exist (even if empty) ───────
+# DirectLake errors if a referenced Delta table doesn't exist yet.
+# Schemas are defined in schemas_module (ENSURE_GOLD_TABLES + spark_schema).
+for tbl_name in ENSURE_GOLD_TABLES:
+    try:
+        existing = read_lakehouse_table(spark, gold_lakehouse_id, tbl_name)
+        logger.info(f"[reporting] {tbl_name}: exists ({existing.count()} rows)")
+    except Exception:
+        logger.info(f"[reporting] {tbl_name}: creating empty table...")
+        empty_df = spark.createDataFrame([], spark_schema(tbl_name))
+        write_lakehouse_table(empty_df, gold_lakehouse_id, tbl_name, mode="overwrite")
+        logger.info(f"[reporting] {tbl_name}: created (empty)")
 
 logger.info("[reporting] Complete.")

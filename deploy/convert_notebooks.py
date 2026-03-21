@@ -17,6 +17,7 @@ BUILD_DIR = pathlib.Path(__file__).parent / "build" / "notebooks"
 PROLOGUE = "# Fabric notebook source"
 
 LAKEHOUSE_MAP = {
+    "000_simulate_future_actuals": "source",
     "00_generate_test_data": "source",
     "01_ingest_sources":     "landing",
     "02_transform_bronze":   "bronze",
@@ -224,9 +225,6 @@ def convert_file(path: pathlib.Path, workspace_id: str, lakehouse_ids: dict,
             while i < len(lines) and not lines[i].strip():
                 i += 1
             continue
-
-        if in_param_block:
-            line = inject_lakehouse_ids(line, lakehouse_ids)
 
         code_buffer.append(line)
         i += 1
