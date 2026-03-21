@@ -199,12 +199,12 @@ TABLES = {
         "columns": [
             {"name": "plant_id",            "type": "string",  "summarize": "none"},
             {"name": "sku_id",              "type": "string",  "summarize": "none"},
-            {"name": "period",              "type": "string",  "summarize": "none"},
+            {"name": "period",              "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "forecast_tons",       "type": "double",  "summarize": "sum"},
             {"name": "model_type",          "type": "string",  "summarize": "none"},
             {"name": "version_type",        "type": "string",  "summarize": "none"},
             {"name": "version_id",          "type": "string",  "summarize": "none"},
-            {"name": "snapshot_month",      "type": "string",  "summarize": "none"},
+            {"name": "snapshot_month",      "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "created_by",          "type": "string"},
             {"name": "created_at",          "type": "string"},
             {"name": "parent_version_id",   "type": "string"},
@@ -225,7 +225,7 @@ TABLES = {
         "columns": [
             {"name": "plant_id",      "type": "string",  "summarize": "none"},
             {"name": "sku_id",        "type": "string",  "summarize": "none"},
-            {"name": "period",        "type": "string",  "summarize": "none"},
+            {"name": "period",        "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "forecast_tons", "type": "double",  "summarize": "sum"},
             {"name": "actual_tons",   "type": "double",  "summarize": "sum"},
             {"name": "abs_error",     "type": "double",  "summarize": "sum"},
@@ -235,7 +235,7 @@ TABLES = {
             {"name": "version_type",  "type": "string",  "summarize": "none"},
             {"name": "version_id",    "type": "string",  "summarize": "none"},
             {"name": "is_future",     "type": "boolean", "summarize": "none"},
-            {"name": "snapshot_date", "type": "string",  "summarize": "none"},
+            {"name": "snapshot_date", "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
         ],
         "measures": [
             {"name": "Total Actual Tons",    "expression": "SUM('Reporting Actuals vs Forecast'[actual_tons])"},
@@ -279,7 +279,7 @@ TABLES = {
         "columns": [
             {"name": "plant_id",         "type": "string", "summarize": "none"},
             {"name": "sku_id",           "type": "string", "summarize": "none"},
-            {"name": "period",           "type": "string", "summarize": "none"},
+            {"name": "period",           "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "forecast_tons",    "type": "double", "summarize": "sum"},
             {"name": "lineal_feet",      "type": "double", "summarize": "sum"},
             {"name": "production_hours", "type": "double", "summarize": "sum"},
@@ -303,7 +303,7 @@ TABLES = {
         "columns": [
             {"name": "plant_id",   "type": "string", "summarize": "none"},
             {"name": "sku_id",     "type": "string", "summarize": "none"},
-            {"name": "period",     "type": "string", "summarize": "none"},
+            {"name": "period",     "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "actual",     "type": "double", "summarize": "sum"},
             {"name": "predicted",  "type": "double", "summarize": "sum"},
             {"name": "model_type", "type": "string", "summarize": "none"},
@@ -324,9 +324,9 @@ TABLES = {
         "columns": [
             {"name": "plant_id",            "type": "string", "summarize": "none"},
             {"name": "sku_id",              "type": "string", "summarize": "none"},
-            {"name": "period",              "type": "string", "summarize": "none"},
+            {"name": "period",              "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "model_type",          "type": "string", "summarize": "none"},
-            {"name": "snapshot_month",      "type": "string", "summarize": "none"},
+            {"name": "snapshot_month",      "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "baseline_tons",       "type": "double", "summarize": "sum"},
             {"name": "override_delta_tons", "type": "double", "summarize": "sum"},
             {"name": "market_scale_factor", "type": "double", "summarize": "none"},
@@ -349,7 +349,7 @@ TABLES = {
             {"name": "plant_id",       "type": "string", "summarize": "none"},
             {"name": "sku_id",         "type": "string", "summarize": "none"},
             {"name": "version_id",     "type": "string", "summarize": "none"},
-            {"name": "snapshot_month", "type": "string", "summarize": "none"},
+            {"name": "snapshot_month", "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "model_type",     "type": "string", "summarize": "none"},
             {"name": "version_type",   "type": "string", "summarize": "none"},
             {"name": "n_periods",      "type": "int64",  "summarize": "sum"},
@@ -517,6 +517,8 @@ def _bim_column(col: dict) -> dict:
     }
     if col.get("isKey"):
         bim_col["isKey"] = True
+    if col.get("formatString"):
+        bim_col["formatString"] = col["formatString"]
     return bim_col
 
 
