@@ -20,10 +20,10 @@ grain_columns = cfg("grain_columns")
 test_split_ratio = cfg("test_split_ratio")
 trend = cfg("exp_smoothing_trend")
 seasonal = cfg("exp_smoothing_seasonal")
-seasonal_periods = cfg("exp_smoothing_seasonal_periods")
+seasonal_periods = freq_params("seasonal_periods")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
-min_series_length = cfg("min_series_length")
+min_series_length = freq_params("min_train_periods")
 
 
 logger.info("[exp_smoothing] Loading feature table.")

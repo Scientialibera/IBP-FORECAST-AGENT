@@ -16,7 +16,7 @@ bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
 silver_lakehouse_id = resolve_lakehouse_id(silver_lakehouse_id, "silver")
 
 date_column = cfg("date_column")
-frequency = cfg("frequency") or "M"
+frequency = cfg("frequency")
 target_column = cfg("target_column")
 grain_columns = cfg("grain_columns")
 feature_columns = cfg("feature_columns")

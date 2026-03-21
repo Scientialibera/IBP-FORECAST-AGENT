@@ -20,7 +20,7 @@ def train_sarima_single(series: pd.Series, order: tuple, seasonal_order: tuple,
     values = series.dropna().values
     n = len(values)
     split = int(n * (1 - test_ratio))
-    if split < 12:
+    if split < freq_params("seasonal_periods"):
         return {"status": "insufficient_data", "predictions": [], "metrics": {}}
 
     train, test = values[:split], values[split:]
@@ -28,7 +28,9 @@ def train_sarima_single(series: pd.Series, order: tuple, seasonal_order: tuple,
         model = SARIMAX(train, order=order, seasonal_order=seasonal_order,
                         enforce_stationarity=False, enforce_invertibility=False)
         fitted = model.fit(disp=False, maxiter=200)
-        preds = fitted.forecast(steps=len(test))
+        raw_preds = fitted.forecast(steps=len(test))
+        cap = max(abs(train.max()), abs(train.mean())) * 5.0
+        preds = np.clip(raw_preds, 0.0, cap)
         metrics = compute_metrics(test, preds)
         return {"status": "success", "predictions": preds.tolist(), "metrics": metrics}
     except Exception as e:
@@ -44,9 +46,10 @@ def _refit_full(series_values, order, seasonal_order):
 def train_sarima_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
                            target_column: str, order: tuple, seasonal_order: tuple,
                            test_ratio: float = 0.2, experiment_name: str = "",
-                           model_name: str = "", min_series_length: int = 24,
+                           model_name: str = "", min_series_length: int | None = None,
                            tuning_enabled: bool = False, tuning_n_iter: int = 10,
                            tuning_n_splits: int = 3, tuning_metric: str = "rmse") -> tuple:
+    min_series_length = min_series_length or freq_params("min_train_periods")
     if experiment_name:
         ensure_experiment(experiment_name)
 

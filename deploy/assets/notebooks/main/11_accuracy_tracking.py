@@ -45,7 +45,7 @@ else:
 
     # Aggregate actuals to grain + period
     actuals_agg = aggregate_to_grain(
-        actuals_pdf, cfg("date_column"), grain_columns, target_column, [], "M"
+        actuals_pdf, cfg("date_column"), grain_columns, target_column, [], cfg("frequency")
     )
 
     # Normalize period columns to strings so the merge doesn't choke on type mismatch

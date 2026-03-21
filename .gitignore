@@ -21,3 +21,6 @@ local.settings.json
 
 .DS_Store
 Thumbs.db
+
+# Local experiments (AI-assisted model optimization)
+experiments/

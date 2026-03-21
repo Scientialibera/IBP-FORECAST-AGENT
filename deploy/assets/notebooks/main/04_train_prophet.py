@@ -23,7 +23,7 @@ weekly = cfg("prophet_weekly_seasonality")
 changepoint_prior = cfg("prophet_changepoint_prior")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
-min_series_length = cfg("min_series_length")
+min_series_length = freq_params("min_train_periods")
 
 
 logger.info("[prophet] Loading feature table.")

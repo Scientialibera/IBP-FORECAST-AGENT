@@ -10,9 +10,10 @@ from typing import Callable
 warnings.filterwarnings("ignore")
 
 
-def time_series_cv_splits(n: int, n_splits: int = 3, min_train_size: int = 24):
+def time_series_cv_splits(n: int, n_splits: int = 3, min_train_size: int = None):
     """Generate expanding-window CV indices for time series.
     Returns list of (train_indices, test_indices) tuples."""
+    min_train_size = min_train_size or freq_params("min_train_periods")
     if n < min_train_size + n_splits:
         return [(list(range(int(n * 0.8))), list(range(int(n * 0.8), n)))]
 
@@ -93,7 +94,7 @@ def _compute_cv_metric(y_true: np.ndarray, y_pred: np.ndarray, metric: str) -> f
 # ── Model-specific fit-predict wrappers for CV ──────────────────
 
 def sarima_fit_predict(train: np.ndarray, horizon: int, order=(1,1,1),
-                       seasonal_order=(1,1,1,12)) -> np.ndarray:
+                       seasonal_order=(1,1,1,freq_params("sarima_seasonal_s"))) -> np.ndarray:
     from statsmodels.tsa.statespace.sarimax import SARIMAX
     model = SARIMAX(train, order=order, seasonal_order=seasonal_order,
                     enforce_stationarity=False, enforce_invertibility=False)
@@ -102,7 +103,7 @@ def sarima_fit_predict(train: np.ndarray, horizon: int, order=(1,1,1),
 
 
 def ets_fit_predict(train: np.ndarray, horizon: int, trend="add",
-                    seasonal="add", seasonal_periods=12) -> np.ndarray:
+                    seasonal="add", seasonal_periods=freq_params("seasonal_periods")) -> np.ndarray:
     from statsmodels.tsa.holtwinters import ExponentialSmoothing
     model = ExponentialSmoothing(train, trend=trend, seasonal=seasonal,
                                  seasonal_periods=seasonal_periods)
@@ -122,22 +123,23 @@ def prophet_fit_predict(train_ds: np.ndarray, train_y: np.ndarray, horizon: int,
     model = Prophet(yearly_seasonality=yearly_seasonality, weekly_seasonality=weekly_seasonality,
                     daily_seasonality=False, changepoint_prior_scale=changepoint_prior_scale)
     model.fit(df)
-    future = model.make_future_dataframe(periods=horizon, freq="MS")
+    future = model.make_future_dataframe(periods=horizon, freq=freq_params("code"))
     forecast = model.predict(future)
     return forecast["yhat"].iloc[-horizon:].values
 
 
 # ── Default parameter grids ─────────────────────────────────────
 
+s = freq_params("sarima_seasonal_s")
 SARIMA_PARAM_GRID = {
     "order": [(1,1,1), (0,1,1), (1,1,0), (2,1,1), (1,1,2), (0,1,2), (2,1,0)],
-    "seasonal_order": [(1,1,1,12), (0,1,1,12), (1,1,0,12), (2,1,1,12)],
+    "seasonal_order": [(1,1,1,s), (0,1,1,s), (1,1,0,s), (2,1,1,s)],
 }
 
 ETS_PARAM_GRID = {
     "trend": ["add", "mul", None],
     "seasonal": ["add", "mul", None],
-    "seasonal_periods": [12],
+    "seasonal_periods": [freq_params("seasonal_periods")],
 }
 
 PROPHET_PARAM_GRID = {
@@ -147,7 +149,7 @@ PROPHET_PARAM_GRID = {
 }
 
 VAR_PARAM_GRID = {
-    "maxlags": [4, 6, 8, 12],
+    "maxlags": freq_params("tuning_grid_maxlags"),
     "ic": ["aic", "bic", "hqic"],
 }
 
@@ -199,5 +201,5 @@ def tune_var_single(df_values: np.ndarray, param_grid: dict = None,
         results.append({"params": params, "score": avg, "n_folds": len(fold_scores)})
 
     results.sort(key=lambda x: x["score"])
-    best = results[0] if results else {"params": {"maxlags": 12, "ic": "aic"}, "score": float("inf")}
+    best = results[0] if results else {"params": {"maxlags": freq_params("var_maxlags"), "ic": "aic"}, "score": float("inf")}
     return {"best_params": best["params"], "best_score": best["score"], "all_results": results}

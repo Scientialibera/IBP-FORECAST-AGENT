@@ -8,11 +8,63 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("ibp")
 logger.setLevel(logging.INFO)
 
+# ═════════════════════════════════════════════════════════════════════
+# Frequency-derived parameters.  Change "frequency" in IBP_CONFIG to
+# "W" or "D" and every seasonal period, lag window, date offset, etc.
+# adapts automatically.  Individual keys in IBP_CONFIG can still
+# override any derived value.
+# ═════════════════════════════════════════════════════════════════════
+
+FREQ_MAP = {
+    "M": {
+        "code":              "MS",
+        "seasonal_periods":  12,
+        "periods_per_year":  12,
+        "default_lags":      [1, 2, 3, 6, 12],
+        "default_rolling":   [3, 6, 12],
+        "offset_kwarg":      "months",
+        "snapshot_fmt":      "%Y-%m",
+        "min_train_periods": 24,
+        "var_maxlags":       12,
+        "sarima_seasonal_s": 12,
+        "tuning_grid_maxlags": [4, 6, 8, 12],
+        "prophet_freq":      "MS",
+    },
+    "W": {
+        "code":              "W-MON",
+        "seasonal_periods":  52,
+        "periods_per_year":  52,
+        "default_lags":      [1, 2, 4, 13, 52],
+        "default_rolling":   [4, 13, 52],
+        "offset_kwarg":      "weeks",
+        "snapshot_fmt":      "%Y-W%W",
+        "min_train_periods": 104,
+        "var_maxlags":       52,
+        "sarima_seasonal_s": 52,
+        "tuning_grid_maxlags": [4, 13, 26, 52],
+        "prophet_freq":      "W",
+    },
+    "D": {
+        "code":              "D",
+        "seasonal_periods":  365,
+        "periods_per_year":  365,
+        "default_lags":      [1, 7, 14, 30, 365],
+        "default_rolling":   [7, 30, 90],
+        "offset_kwarg":      "days",
+        "snapshot_fmt":      "%Y-%m-%d",
+        "min_train_periods": 365,
+        "var_maxlags":       30,
+        "sarima_seasonal_s": 7,
+        "tuning_grid_maxlags": [7, 14, 30],
+        "prophet_freq":      "D",
+    },
+}
+
 IBP_CONFIG = {
     # ── Data Schema ──────────────────────────────────────────────
     "date_column":              "period_date",
     "feature_date_column":      "period",
-    "frequency":                "M",
+    "frequency":                "W",
     "target_column":     "tons",
     "grain_columns":     ["plant_id", "sku_id"],
     "extended_grains":   ["plant_id", "sku_group", "customer_id", "market_id"],
@@ -27,11 +79,9 @@ IBP_CONFIG = {
     # ── Forecasting ──────────────────────────────────────────────
     "forecast_horizon":    6,
     "test_split_ratio":    0.2,
-    "min_series_length":   24,
 
     # ── SARIMA ───────────────────────────────────────────────────
     "sarima_order":            [1, 1, 1],
-    "sarima_seasonal_order":   [1, 1, 1, 12],
 
     # ── Prophet ──────────────────────────────────────────────────
     "prophet_yearly_seasonality":  True,
@@ -39,13 +89,11 @@ IBP_CONFIG = {
     "prophet_changepoint_prior":   0.05,
 
     # ── VAR ──────────────────────────────────────────────────────
-    "var_maxlags":  12,
     "var_ic":       "aic",
 
     # ── Exponential Smoothing ────────────────────────────────────
     "exp_smoothing_trend":            "add",
     "exp_smoothing_seasonal":         "add",
-    "exp_smoothing_seasonal_periods": 12,
 
     # ── Hyperparameter Tuning ──────────────────────────────────────
     "tuning_enabled":       True,
@@ -64,7 +112,7 @@ IBP_CONFIG = {
     # ── Capacity Translation ─────────────────────────────────────
     "capacity_output_table":      "capacity_translation",
     "production_history_table":   "production_history",
-    "rolling_months":             3,
+    "rolling_periods":            3,
     "tons_to_lf_factor":          2000,
     "width_column":               "width_inches",
     "speed_column":               "line_speed_fpm",
@@ -100,10 +148,6 @@ IBP_CONFIG = {
     "over_forecast_threshold":    0.10,
     "under_forecast_threshold":  -0.10,
 
-    # ── Feature Engineering ───────────────────────────────────────
-    "lag_periods":       [1, 2, 3, 6, 12],
-    "rolling_windows":   [3, 6, 12],
-
     # ── Phase 2: External Signals ────────────────────────────────
     "external_signals_enabled":   False,
     "signal_columns":   ["construction_index", "interest_rate", "inflation_rate", "tariff_rate"],
@@ -127,9 +171,9 @@ IBP_CONFIG = {
     # ── Phase 2: Inventory Alignment ──────────────────────────────
     "inventory_table":                       "inventory_finished_goods",
     "inventory_alignment_table":             "inventory_alignment",
-    "inventory_near_term_months":            3,
-    "inventory_stockout_threshold_months":   1,
-    "inventory_overbuild_threshold_months":  6,
+    "inventory_near_term_periods":           3,
+    "inventory_stockout_threshold_periods":  1,
+    "inventory_overbuild_threshold_periods": 6,
 
     # ── Semantic Model / Reporting ─────────────────────────────────
     "reporting_table":      "reporting_actuals_vs_forecast",
@@ -157,8 +201,12 @@ IBP_CONFIG = {
     "n_customers":          20,
     "n_markets":            4,
     "n_production_lines":   10,
-    "history_months":       42,
+    "history_periods":      156,
     "seed":                 42,
+    "demand_shock_prob":    0.06,
+    "intermittent_pct":     0.10,
+    "price_elasticity_range": [-0.8, -0.3],
+    "promo_lift_range":     [0.15, 0.40],
 }
 
 
@@ -167,3 +215,16 @@ def cfg(key: str, override=None):
     if override is not None and override != "" and override != "None":
         return override
     return IBP_CONFIG.get(key)
+
+
+def freq_params(key=None):
+    """Return frequency-derived params, or a single key from the map.
+
+    All seasonal periods, lag defaults, date-offset keywords, etc. are
+    derived from IBP_CONFIG["frequency"].  Explicit overrides in
+    IBP_CONFIG take precedence for the keys that exist in both places.
+    """
+    fp = FREQ_MAP[IBP_CONFIG["frequency"]]
+    if key:
+        return fp[key]
+    return fp

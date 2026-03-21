@@ -46,9 +46,9 @@ def generate_version_id() -> str:
     return str(uuid.uuid4())
 
 
-def current_snapshot_month() -> str:
-    """Return the current YYYY-MM for snapshot tagging."""
-    return datetime.utcnow().strftime("%Y-%m")
+def current_snapshot_label() -> str:
+    """Return the current snapshot label for tagging (format from freq_params)."""
+    return datetime.utcnow().strftime(freq_params("snapshot_fmt"))
 
 
 def log_metrics_to_mlflow(metrics: dict, prefix: str = "") -> None:

@@ -16,7 +16,8 @@ warnings.filterwarnings("ignore")
 
 
 def train_var_single(df: pd.DataFrame, target_column: str, feature_columns: list,
-                     maxlags: int = 12, ic: str = "aic", test_ratio: float = 0.2) -> dict:
+                     maxlags: int = None, ic: str = "aic", test_ratio: float = 0.2) -> dict:
+    maxlags = maxlags or freq_params("var_maxlags")
     cols = [target_column] + [c for c in feature_columns if c in df.columns and c != target_column]
     subset = df[cols].dropna()
     n = len(subset)
@@ -31,7 +32,9 @@ def train_var_single(df: pd.DataFrame, target_column: str, feature_columns: list
         fitted = model.fit(maxlags=maxlags, ic=ic)
         forecast_input = train.values[-fitted.k_ar:]
         forecast = fitted.forecast(forecast_input, steps=len(test))
-        preds = forecast[:, 0]
+        raw_preds = forecast[:, 0]
+        cap = max(abs(train[target_column].max()), abs(train[target_column].mean())) * 5.0
+        preds = np.clip(raw_preds, 0.0, cap)
         metrics = compute_metrics(test[target_column].values, preds)
         return {"status": "success", "predictions": preds.tolist(),
                 "metrics": metrics, "lag_order": fitted.k_ar, "columns": cols}
@@ -46,11 +49,13 @@ def _refit_full(df_subset_values, maxlags, ic):
 
 def train_var_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
                         target_column: str, feature_columns: list,
-                        maxlags: int = 12, ic: str = "aic", test_ratio: float = 0.2,
+                        maxlags: int = None, ic: str = "aic", test_ratio: float = 0.2,
                         experiment_name: str = "", model_name: str = "",
-                        min_series_length: int = 24,
+                        min_series_length: int | None = None,
                         tuning_enabled: bool = False, tuning_n_iter: int = 8,
                         tuning_n_splits: int = 3, tuning_metric: str = "rmse") -> tuple:
+    min_series_length = min_series_length or freq_params("min_train_periods")
+    maxlags = maxlags or freq_params("var_maxlags")
     if experiment_name:
         ensure_experiment(experiment_name)
 

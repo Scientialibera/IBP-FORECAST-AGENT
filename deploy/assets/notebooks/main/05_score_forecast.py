@@ -25,14 +25,14 @@ feature_columns = cfg("feature_columns")
 forecast_horizon = cfg("forecast_horizon")
 experiment_name = cfg("experiment_name")
 sarima_order = tuple(cfg("sarima_order"))
-sarima_seasonal_order = tuple(cfg("sarima_seasonal_order"))
+sarima_seasonal_order = tuple(list(cfg("sarima_order")) + [freq_params("sarima_seasonal_s")])
 ets_trend = cfg("exp_smoothing_trend") or "add"
 ets_seasonal = cfg("exp_smoothing_seasonal") or "add"
-ets_seasonal_periods = int(cfg("exp_smoothing_seasonal_periods") or 12)
+ets_seasonal_periods = freq_params("seasonal_periods")
 prophet_yearly = str(cfg("prophet_yearly_seasonality") or "true").lower() == "true"
 prophet_weekly = str(cfg("prophet_weekly_seasonality") or "false").lower() == "true"
 prophet_cp = float(cfg("prophet_changepoint_prior") or 0.05)
-var_maxlags = int(cfg("var_maxlags") or 12)
+var_maxlags = freq_params("var_maxlags")
 var_ic = cfg("var_ic") or "aic"
 
 if not silver_lakehouse_id or not gold_lakehouse_id:

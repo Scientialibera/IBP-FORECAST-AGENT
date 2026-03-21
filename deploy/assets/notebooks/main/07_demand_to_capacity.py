@@ -21,7 +21,7 @@ forecast_table = cfg("output_table")
 capacity_output_table = cfg("capacity_output_table")
 production_table = cfg("production_history_table")
 grain_columns = cfg("grain_columns")
-rolling_months = cfg("rolling_months")
+rolling_periods = cfg("rolling_periods")
 tons_to_lf_factor = cfg("tons_to_lf_factor")
 width_column = cfg("width_column")
 speed_column = cfg("speed_column")
@@ -57,7 +57,7 @@ else:
         prod_pdf, width_column=width_column, speed_column=speed_column,
         line_id_column=line_id_column, plant_column=plant_col,
         sku_column=sku_col, date_column=cfg("date_column"),
-        rolling_months=rolling_months,
+        rolling_periods=rolling_periods,
     )
     logger.info(f"[capacity] Computed rolling averages for {len(prod_avgs)} plant/sku/line combos")
 

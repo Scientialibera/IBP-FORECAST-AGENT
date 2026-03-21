@@ -9,8 +9,9 @@ def compute_rolling_production_averages(production_df: pd.DataFrame,
                                         width_column: str, speed_column: str,
                                         line_id_column: str, plant_column: str,
                                         sku_column: str, date_column: str,
-                                        rolling_months: int = 3) -> pd.DataFrame:
-    """Compute rolling 3-month averages of width and line speed per plant/sku/line."""
+                                        rolling_periods: int = None) -> pd.DataFrame:
+    """Compute rolling averages of width and line speed per plant/sku/line."""
+    rolling_periods = rolling_periods or cfg("rolling_periods")
     df = production_df.copy()
     df[date_column] = pd.to_datetime(df[date_column])
     df = df.sort_values([plant_column, sku_column, line_id_column, date_column])
@@ -18,22 +19,22 @@ def compute_rolling_production_averages(production_df: pd.DataFrame,
     group_cols = [plant_column, sku_column, line_id_column]
 
     df["avg_width"] = df.groupby(group_cols)[width_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).mean()
+        lambda x: x.rolling(rolling_periods, min_periods=1).mean()
     )
     df["avg_speed"] = df.groupby(group_cols)[speed_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).mean()
+        lambda x: x.rolling(rolling_periods, min_periods=1).mean()
     )
     df["min_width"] = df.groupby(group_cols)[width_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).min()
+        lambda x: x.rolling(rolling_periods, min_periods=1).min()
     )
     df["max_width"] = df.groupby(group_cols)[width_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).max()
+        lambda x: x.rolling(rolling_periods, min_periods=1).max()
     )
     df["min_speed"] = df.groupby(group_cols)[speed_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).min()
+        lambda x: x.rolling(rolling_periods, min_periods=1).min()
     )
     df["max_speed"] = df.groupby(group_cols)[speed_column].transform(
-        lambda x: x.rolling(rolling_months, min_periods=1).max()
+        lambda x: x.rolling(rolling_periods, min_periods=1).max()
     )
 
     latest = df.groupby(group_cols).tail(1).reset_index(drop=True)

@@ -56,7 +56,7 @@ else:
             if signal not in group.columns:
                 continue
             valid = group[[target_column, signal]].dropna()
-            if len(valid) < 12:
+            if len(valid) < freq_params("seasonal_periods"):
                 continue
             corr = valid[target_column].corr(valid[signal])
             record = {"signal": signal, "correlation": corr, "n_obs": len(valid)}

@@ -16,7 +16,8 @@ warnings.filterwarnings("ignore")
 
 
 def train_ets_single(series: pd.Series, trend: str = "add", seasonal: str = "add",
-                     seasonal_periods: int = 12, test_ratio: float = 0.2) -> dict:
+                     seasonal_periods: int = None, test_ratio: float = 0.2) -> dict:
+    seasonal_periods = seasonal_periods or freq_params("seasonal_periods")
     values = series.dropna().values
     n = len(values)
     split = int(n * (1 - test_ratio))
@@ -43,11 +44,13 @@ def _refit_full(series_values, trend, seasonal, seasonal_periods):
 
 def train_exp_smoothing_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
                                   target_column: str, trend: str = "add",
-                                  seasonal: str = "add", seasonal_periods: int = 12,
+                                  seasonal: str = "add", seasonal_periods: int = None,
                                   test_ratio: float = 0.2, experiment_name: str = "",
-                                  model_name: str = "", min_series_length: int = 24,
+                                  model_name: str = "", min_series_length: int | None = None,
                                   tuning_enabled: bool = False, tuning_n_iter: int = 10,
                                   tuning_n_splits: int = 3, tuning_metric: str = "rmse") -> tuple:
+    min_series_length = min_series_length or freq_params("min_train_periods")
+    seasonal_periods = seasonal_periods or freq_params("seasonal_periods")
     if experiment_name:
         ensure_experiment(experiment_name)
 

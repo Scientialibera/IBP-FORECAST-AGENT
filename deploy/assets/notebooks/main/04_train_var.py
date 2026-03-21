@@ -23,7 +23,7 @@ var_maxlags = cfg("var_maxlags")
 var_ic = cfg("var_ic")
 experiment_name = cfg("experiment_name")
 model_prefix = cfg("registered_model_prefix")
-min_series_length = cfg("min_series_length")
+min_series_length = freq_params("min_train_periods")
 
 
 logger.info("[var] Loading feature table.")

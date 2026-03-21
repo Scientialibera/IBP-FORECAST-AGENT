@@ -46,7 +46,7 @@ tables = [
 
 [features]
 date_column     = "period_date"
-frequency       = "M"
+frequency       = "W"
 target_column   = "tons"
 grain_columns   = ["plant_id", "sku_id"]
 extended_grains = ["plant_id", "sku_group", "customer_id", "market_id"]
@@ -57,11 +57,9 @@ feature_types   = ["float", "float", "int", "float"]
 
 [training]
 test_split_ratio          = 0.2
-min_series_length         = 24
 
 # SARIMA (required)
 sarima_order              = [1, 1, 1]
-sarima_seasonal_order     = [1, 1, 1, 12]
 
 # Prophet (required)
 prophet_yearly_seasonality  = true
@@ -69,13 +67,11 @@ prophet_weekly_seasonality  = false
 prophet_changepoint_prior   = 0.05
 
 # VAR (preferred)
-var_maxlags               = 12
 var_ic                    = "aic"
 
 # Exponential Smoothing (preferred)
 exp_smoothing_trend             = "add"
 exp_smoothing_seasonal          = "add"
-exp_smoothing_seasonal_periods  = 12
 
 [mlflow]
 experiment_name          = "ibp_demand_forecast"
@@ -101,7 +97,7 @@ keep_n_snapshots   = 24
 [capacity]
 output_table              = "capacity_translation"
 production_history_table  = "production_history"
-rolling_months            = 3
+rolling_periods           = 3
 tons_to_lf_factor         = 2000
 width_column              = "width_inches"
 speed_column              = "line_speed_fpm"
@@ -174,5 +170,5 @@ n_plants            = 5
 n_customers         = 20
 n_markets           = 4
 n_production_lines  = 10
-history_months      = 42
+history_periods     = 156
 seed                = 42

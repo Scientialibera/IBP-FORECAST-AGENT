@@ -22,9 +22,9 @@ import numpy as np
 forecast_table = cfg("output_table")
 inventory_table = cfg("inventory_table")
 grain_columns = cfg("grain_columns")
-near_term_months = cfg("inventory_near_term_months")
-stockout_threshold_months = cfg("inventory_stockout_threshold_months")
-overbuild_threshold_months = cfg("inventory_overbuild_threshold_months")
+near_term_periods = cfg("inventory_near_term_periods")
+stockout_threshold_periods = cfg("inventory_stockout_threshold_periods")
+overbuild_threshold_periods = cfg("inventory_overbuild_threshold_periods")
 inventory_alignment_table = cfg("inventory_alignment_table")
 
 if not gold_lakehouse_id or not bronze_lakehouse_id:
@@ -61,7 +61,7 @@ else:
         ).reset_index()
 
         forecast_pdf["period_dt"] = pd.to_datetime(forecast_pdf["period"])
-        cutoff = forecast_pdf["period_dt"].min() + pd.DateOffset(months=near_term_months)
+        cutoff = forecast_pdf["period_dt"].min() + pd.DateOffset(**{freq_params("offset_kwarg"): near_term_periods})
         near_term = forecast_pdf[forecast_pdf["period_dt"] <= cutoff]
 
         fc_col = "final_forecast_tons" if "final_forecast_tons" in near_term.columns else "forecast_tons"
@@ -77,13 +77,13 @@ else:
 
         alignment["coverage_months"] = np.where(
             alignment["demand_3m"] > 0,
-            (alignment["current_inventory"] / alignment["demand_3m"]) * near_term_months,
+            (alignment["current_inventory"] / alignment["demand_3m"]) * near_term_periods,
             np.where(alignment["current_inventory"] > 0, 99, 0)
         )
 
         alignment["risk_flag"] = alignment.apply(
-            lambda r: "stock_out_risk" if r["coverage_months"] < stockout_threshold_months
-            else ("overbuild" if r["coverage_months"] > overbuild_threshold_months else "healthy"),
+            lambda r: "stock_out_risk" if r["coverage_months"] < stockout_threshold_periods
+            else ("overbuild" if r["coverage_months"] > overbuild_threshold_periods else "healthy"),
             axis=1
         )
 

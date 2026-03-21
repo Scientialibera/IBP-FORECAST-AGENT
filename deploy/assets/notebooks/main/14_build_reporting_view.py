@@ -44,7 +44,7 @@ actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table).toP
 logger.info(f"[reporting] Actuals ({primary_table}): {len(actuals_df)} rows")
 
 if "period_date" in actuals_df.columns and "period" not in actuals_df.columns:
-    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period("M").astype(str)
+    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period(cfg("frequency")).astype(str)
 
 date_col = "period" if "period" in fc_df.columns else "period_date"
 actuals_agg = actuals_df.groupby(grain_columns + [date_col], as_index=False)[target_column].sum()

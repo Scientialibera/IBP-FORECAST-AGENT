@@ -34,7 +34,7 @@ def train_prophet_single(series_df: pd.DataFrame, yearly_seasonality: bool = Tru
     df = series_df.dropna(subset=["y"]).copy()
     n = len(df)
     split = int(n * (1 - test_ratio))
-    if split < 12:
+    if split < freq_params("seasonal_periods"):
         return {"status": "insufficient_data", "predictions": [], "metrics": {}}
 
     train = df.iloc[:split]
@@ -63,9 +63,10 @@ def train_prophet_per_grain(df: pd.DataFrame, date_column: str, grain_columns: l
                             target_column: str, yearly_seasonality: bool = True,
                             weekly_seasonality: bool = False, changepoint_prior: float = 0.05,
                             test_ratio: float = 0.2, experiment_name: str = "",
-                            model_name: str = "", min_series_length: int = 24,
+                            model_name: str = "", min_series_length: int | None = None,
                             tuning_enabled: bool = False, tuning_n_iter: int = 10,
                             tuning_n_splits: int = 3, tuning_metric: str = "rmse") -> tuple:
+    min_series_length = min_series_length or freq_params("min_train_periods")
     if experiment_name:
         ensure_experiment(experiment_name)
 

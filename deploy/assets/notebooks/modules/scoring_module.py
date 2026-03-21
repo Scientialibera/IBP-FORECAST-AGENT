@@ -46,7 +46,23 @@ def _load_grain_models(experiment_name: str, run_name_prefix: str, artifact_file
 
 def _future_dates(last_period_str: str, horizon: int):
     last_date = pd.to_datetime(last_period_str)
-    return pd.date_range(start=last_date + pd.DateOffset(months=1), periods=horizon, freq="MS")
+    return pd.date_range(
+        start=last_date + pd.DateOffset(**{freq_params("offset_kwarg"): 1}),
+        periods=horizon,
+        freq=freq_params("code"),
+    )
+
+
+def _clip_forecasts(preds, historical_values, multiplier=5.0):
+    """Clip forecasts to a sane range based on historical data.
+    Prevents SARIMA/VAR numerical explosions from corrupting results."""
+    arr = np.asarray(preds, dtype=float)
+    hist = np.asarray(historical_values, dtype=float)
+    hist = hist[np.isfinite(hist)]
+    if len(hist) == 0:
+        return arr
+    cap = max(abs(hist.max()), abs(hist.mean())) * multiplier
+    return np.clip(arr, 0.0, cap)
 
 
 def _build_rows(future_dates, preds, grain_key, grain_columns, model_type):
@@ -82,7 +98,9 @@ def forecast_sarima_forward(df: pd.DataFrame, date_column: str, grain_columns: l
             continue
 
         fitted = grain_models[key_str]
-        preds = fitted.forecast(steps=horizon)
+        raw_preds = fitted.forecast(steps=horizon)
+        hist_vals = group_sorted[target_column].dropna().values
+        preds = _clip_forecasts(raw_preds, hist_vals)
         future = _future_dates(last_period, horizon)
         results.extend(_build_rows(future, preds, grain_key, grain_columns, "sarima"))
 
@@ -113,7 +131,7 @@ def forecast_prophet_forward(df: pd.DataFrame, date_column: str, grain_columns: 
             continue
 
         model = grain_models[key_str]
-        future = model.make_future_dataframe(periods=horizon, freq="MS")
+        future = model.make_future_dataframe(periods=horizon, freq=freq_params("code"))
         forecast = model.predict(future)
         future_forecast = forecast.iloc[-horizon:]
         for _, frow in future_forecast.iterrows():
@@ -130,9 +148,10 @@ def forecast_prophet_forward(df: pd.DataFrame, date_column: str, grain_columns: 
 
 def forecast_var_forward(df: pd.DataFrame, date_column: str, grain_columns: list,
                          target_column: str, feature_columns: list,
-                         horizon: int, maxlags: int = 12, ic: str = "aic",
+                         horizon: int, maxlags: int = None, ic: str = "aic",
                          experiment_name: str = "") -> pd.DataFrame:
     """Load VAR models from MLflow and forecast forward."""
+    maxlags = maxlags or freq_params("var_maxlags")
     grain_models = _load_grain_models(experiment_name, "var", "var_models.pkl")
 
     results = []
@@ -156,7 +175,9 @@ def forecast_var_forward(df: pd.DataFrame, date_column: str, grain_columns: list
         full_data = group_sorted[cols].dropna().values
         forecast_input = full_data[-fitted.k_ar:]
         forecast = fitted.forecast(forecast_input, steps=horizon)
-        preds = forecast[:, 0]
+        raw_preds = forecast[:, 0]
+        hist_vals = group_sorted[target_column].dropna().values
+        preds = _clip_forecasts(raw_preds, hist_vals)
         future = _future_dates(last_period, horizon)
         results.extend(_build_rows(future, preds, grain_key, grain_columns, "var"))
 
@@ -167,9 +188,10 @@ def forecast_var_forward(df: pd.DataFrame, date_column: str, grain_columns: list
 
 def forecast_ets_forward(df: pd.DataFrame, date_column: str, grain_columns: list,
                          target_column: str, horizon: int, trend: str = "add",
-                         seasonal: str = "add", seasonal_periods: int = 12,
+                         seasonal: str = "add", seasonal_periods: int = None,
                          experiment_name: str = "") -> pd.DataFrame:
     """Load ETS models from MLflow and forecast forward."""
+    seasonal_periods = seasonal_periods or freq_params("seasonal_periods")
     grain_models = _load_grain_models(experiment_name, "exp_smoothing", "ets_models.pkl")
 
     results = []

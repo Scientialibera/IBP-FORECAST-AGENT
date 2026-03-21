@@ -15,7 +15,7 @@ def stamp_forecast_version(df: pd.DataFrame, version_type: str = "system",
     result = df.copy()
     vid = generate_version_id()
     result["version_id"] = vid
-    result["snapshot_month"] = current_snapshot_month()
+    result["snapshot_month"] = current_snapshot_label()
     result["version_type"] = version_type
     if "model_type" not in result.columns and model_type:
         result["model_type"] = model_type

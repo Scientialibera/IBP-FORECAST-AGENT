@@ -295,12 +295,30 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `date_column` | `"period_date"` | Raw date column in source tables |
 | `feature_date_column` | `"period"` | Date column after feature engineering (YYYY-MM format) |
-| `frequency` | `"M"` | Time series frequency |
+| `frequency` | `"M"` | Time series frequency (`"M"`, `"W"`, or `"D"`). All seasonal periods, lag windows, date offsets, and tuning grids auto-derive via `freq_params()` |
 | `target_column` | `"tons"` | Target variable for forecasting |
 | `grain_columns` | `["plant_id", "sku_id"]` | Columns that define a unique time series |
 | `extended_grains` | `["plant_id", "sku_group", "customer_id", "market_id"]` | Extended grain for drill-down |
 | `feature_columns` | `["price_per_ton", "lead_time_days", "promo_flag", "safety_stock_tons"]` | Exogenous features for VAR and feature engineering |
 | `source_tables` | 14 tables | List of all source tables to ingest |
+
+### Frequency Map (`freq_params()`)
+
+Changing `frequency` in the config automatically adapts every derived parameter below. These values are accessed via `freq_params("key")` from any notebook or module.
+
+| Key | M (Monthly) | W (Weekly) | D (Daily) |
+|-----|-------------|------------|-----------|
+| `code` | `"MS"` | `"W-MON"` | `"D"` |
+| `seasonal_periods` | 12 | 52 | 365 |
+| `periods_per_year` | 12 | 52 | 365 |
+| `default_lags` | [1,2,3,6,12] | [1,2,4,13,52] | [1,7,14,30,365] |
+| `default_rolling` | [3,6,12] | [4,13,52] | [7,30,90] |
+| `offset_kwarg` | `"months"` | `"weeks"` | `"days"` |
+| `snapshot_fmt` | `"%Y-%m"` | `"%Y-W%W"` | `"%Y-%m-%d"` |
+| `min_train_periods` | 24 | 104 | 365 |
+| `var_maxlags` | 12 | 52 | 30 |
+| `sarima_seasonal_s` | 12 | 52 | 7 |
+| `tuning_grid_maxlags` | [4,6,8,12] | [4,13,26,52] | [7,14,30] |
 
 ### Forecasting
 
@@ -308,14 +326,12 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `forecast_horizon` | `6` | Number of periods to forecast forward |
 | `test_split_ratio` | `0.2` | Holdout ratio for train/test evaluation |
-| `min_series_length` | `24` | Minimum data points required per grain |
 
 ### SARIMA
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `sarima_order` | `[1, 1, 1]` | (p, d, q) -- AR order, differencing, MA order |
-| `sarima_seasonal_order` | `[1, 1, 1, 12]` | (P, D, Q, s) -- seasonal AR, differencing, MA, period |
 
 ### Prophet
 
@@ -329,7 +345,7 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `var_maxlags` | `12` | Maximum lag order to consider |
+| `var_maxlags` | derived | Maximum lag order (auto-set by `freq_params()`: M=12, W=52, D=30) |
 | `var_ic` | `"aic"` | Information criterion for lag selection (aic, bic, hqic) |
 
 ### Exponential Smoothing (Holt-Winters)
@@ -338,7 +354,7 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `exp_smoothing_trend` | `"add"` | Trend component type (add, mul, None) |
 | `exp_smoothing_seasonal` | `"add"` | Seasonal component type (add, mul, None) |
-| `exp_smoothing_seasonal_periods` | `12` | Number of periods in a seasonal cycle |
+| `exp_smoothing_seasonal_periods` | derived | Number of periods in a seasonal cycle (auto-set by `freq_params()`: M=12, W=52, D=365) |
 
 ### Hyperparameter Tuning
 
@@ -369,7 +385,7 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `capacity_output_table` | `"capacity_translation"` | Output table name |
 | `production_history_table` | `"production_history"` | Source production data |
-| `rolling_months` | `3` | Rolling average window for production metrics |
+| `rolling_periods` | `3` | Rolling average window for production metrics (periods per `frequency`) |
 | `tons_to_lf_factor` | `2000` | Conversion factor: tons → lineal feet |
 | `width_column` | `"width_inches"` | Column for product width |
 | `speed_column` | `"line_speed_fpm"` | Column for line speed (feet per minute) |
@@ -423,8 +439,8 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `lag_periods` | `[1, 2, 3, 6, 12]` | Lag periods (in months) used for lag features |
-| `rolling_windows` | `[3, 6, 12]` | Window sizes (in months) for rolling mean/std features |
+| `lag_periods` | derived | Lag periods (auto-set by `freq_params()`: M=[1,2,3,6,12], W=[1,2,4,13,52], D=[1,7,14,30,365]) |
+| `rolling_windows` | derived | Rolling window sizes (auto-set by `freq_params()`: M=[3,6,12], W=[4,13,52], D=[7,30,90]) |
 
 ### Phase 2: External Signals
 
@@ -461,9 +477,9 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 |-----------|---------|-------------|
 | `inventory_table` | `"inventory_finished_goods"` | Source table for finished-goods inventory |
 | `inventory_alignment_table` | `"inventory_alignment"` | Output table with inventory vs. demand alignment |
-| `inventory_near_term_months` | `3` | Months of forward demand to use for near-term coverage |
-| `inventory_stockout_threshold_months` | `1` | Coverage below this (in months) flags stock-out risk |
-| `inventory_overbuild_threshold_months` | `6` | Coverage above this (in months) flags overbuild risk |
+| `inventory_near_term_periods` | `3` | Periods of forward demand to use for near-term coverage |
+| `inventory_stockout_threshold_periods` | `1` | Coverage below this (in periods) flags stock-out risk |
+| `inventory_overbuild_threshold_periods` | `6` | Coverage above this (in periods) flags overbuild risk |
 
 ### Semantic Model / Reporting
 
@@ -498,8 +514,12 @@ All runtime configuration lives in `deploy/assets/notebooks/modules/ibp_config.p
 | `n_customers` | `20` | Number of synthetic customers |
 | `n_markets` | `4` | Number of synthetic markets |
 | `n_production_lines` | `10` | Number of production lines |
-| `history_months` | `42` | Months of synthetic history |
+| `history_periods` | `36` | Periods of synthetic history (at whatever `frequency` is set to) |
 | `seed` | `42` | Random seed for reproducibility |
+| `demand_shock_prob` | `0.06` | Per-period probability of a demand shock (+/- 30-60%) |
+| `intermittent_pct` | `0.10` | Fraction of SKUs with intermittent (sporadic) demand |
+| `price_elasticity_range` | `[-0.8, -0.3]` | Price elasticity range (per SKU, inverse effect on demand) |
+| `promo_lift_range` | `[0.15, 0.40]` | Promotion lift range (demand multiplier when promo_flag=1) |
 
 ## Notebook Build System
 
