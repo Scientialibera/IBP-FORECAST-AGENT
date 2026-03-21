@@ -99,7 +99,7 @@ def train_exp_smoothing_per_grain(df: pd.DataFrame, date_column: str, grain_colu
             test_rows = group_sorted.iloc[split_idx:]
             n_preds = min(len(result["predictions"]), len(test_rows))
             for j in range(n_preds):
-                row = {date_column: str(test_rows["period"].iloc[j]),
+                row = {date_column: pd.to_datetime(test_rows["period"].iloc[j]).date(),
                        "actual": float(series.iloc[split_idx + j]),
                        "predicted": result["predictions"][j], "model_type": "exp_smoothing"}
                 for k, col in enumerate(grain_columns):

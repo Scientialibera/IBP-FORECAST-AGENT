@@ -68,7 +68,7 @@ def _clip_forecasts(preds, historical_values, multiplier=5.0):
 def _build_rows(future_dates, preds, grain_key, grain_columns, model_type):
     rows = []
     for d, p in zip(future_dates, preds):
-        row = {"period": str(d.date()), "forecast_tons": float(p), "model_type": model_type}
+        row = {"period": d.date() if hasattr(d, 'date') else d, "forecast_tons": float(p), "model_type": model_type}
         for k, col in enumerate(grain_columns):
             row[col] = grain_key[k] if k < len(grain_key) else ""
         rows.append(row)
@@ -311,7 +311,7 @@ def forecast_lightgbm_forward(df: pd.DataFrame, date_column: str, grain_columns:
             pred = max(0, float(model.predict(X)[0]))
 
             history.append(pred)
-            row = {"period": str(fut_date.date()), "forecast_tons": pred,
+            row = {"period": fut_date.date(), "forecast_tons": pred,
                    "model_type": "lightgbm"}
             for k, gc in enumerate(grain_columns):
                 row[gc] = grain_key[k] if k < len(grain_key) else ""

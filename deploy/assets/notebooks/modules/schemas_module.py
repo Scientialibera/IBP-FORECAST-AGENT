@@ -13,7 +13,7 @@
 
 from pyspark.sql.types import (
     StructType, StructField, StringType, DoubleType, LongType, BooleanType,
-    TimestampType,
+    TimestampType, DateType,
 )
 
 _SPARK_TYPE_MAP = {
@@ -22,6 +22,8 @@ _SPARK_TYPE_MAP = {
     "int64":     LongType(),
     "boolean":   BooleanType(),
     "timestamp": TimestampType(),
+    "date":      DateType(),
+    "dateTime":  DateType(),
 }
 
 
@@ -35,7 +37,7 @@ TABLES = {
 
     "orders": {
         "columns": [
-            {"name": "period_date",       "type": "string"},
+            {"name": "period_date",       "type": "date"},
             {"name": "plant_id",          "type": "string"},
             {"name": "sku_id",            "type": "string"},
             {"name": "sku_group",         "type": "string"},
@@ -51,7 +53,7 @@ TABLES = {
 
     "shipments": {
         "columns": [
-            {"name": "period_date",       "type": "string"},
+            {"name": "period_date",       "type": "date"},
             {"name": "plant_id",          "type": "string"},
             {"name": "sku_id",            "type": "string"},
             {"name": "sku_group",         "type": "string"},
@@ -62,13 +64,13 @@ TABLES = {
             {"name": "lead_time_days",    "type": "int64"},
             {"name": "promo_flag",        "type": "int64"},
             {"name": "safety_stock_tons", "type": "double"},
-            {"name": "shipped_date",      "type": "string"},
+            {"name": "shipped_date",      "type": "date"},
         ],
     },
 
     "production_history": {
         "columns": [
-            {"name": "period_date",    "type": "string"},
+            {"name": "period_date",    "type": "date"},
             {"name": "plant_id",       "type": "string"},
             {"name": "sku_id",         "type": "string"},
             {"name": "line_id",        "type": "string"},
@@ -80,7 +82,7 @@ TABLES = {
 
     "budget_volumes": {
         "columns": [
-            {"name": "period",      "type": "string"},
+            {"name": "period",      "type": "date"},
             {"name": "plant_id",    "type": "string"},
             {"name": "sku_id",      "type": "string"},
             {"name": "sku_group",   "type": "string"},
@@ -95,13 +97,13 @@ TABLES = {
             {"name": "plant_id",      "type": "string"},
             {"name": "sku_group",     "type": "string"},
             {"name": "on_hand_tons",  "type": "double"},
-            {"name": "snapshot_date", "type": "string"},
+            {"name": "snapshot_date", "type": "date"},
         ],
     },
 
     "sales_overrides": {
         "columns": [
-            {"name": "period",              "type": "string"},
+            {"name": "period",              "type": "date"},
             {"name": "plant_id",            "type": "string"},
             {"name": "sku_id",              "type": "string"},
             {"name": "override_delta_tons", "type": "double"},
@@ -113,7 +115,7 @@ TABLES = {
     "market_adjustments": {
         "columns": [
             {"name": "market_id",         "type": "string"},
-            {"name": "period",            "type": "string"},
+            {"name": "period",            "type": "date"},
             {"name": "scale_factor",      "type": "double"},
             {"name": "adjustment_reason", "type": "string"},
         ],
@@ -121,7 +123,7 @@ TABLES = {
 
     "external_signals": {
         "columns": [
-            {"name": "period",             "type": "string"},
+            {"name": "period",             "type": "date"},
             {"name": "construction_index", "type": "double"},
             {"name": "interest_rate",      "type": "double"},
             {"name": "inflation_rate",     "type": "double"},
@@ -180,7 +182,7 @@ TABLES = {
 
     "predictions": {
         "columns": [
-            {"name": "period",     "type": "string"},
+            {"name": "period",     "type": "date"},
             {"name": "actual",     "type": "double"},
             {"name": "predicted",  "type": "double"},
             {"name": "model_type", "type": "string"},
@@ -206,7 +208,7 @@ TABLES = {
             {"name": "version_id",          "type": "string",  "summarize": "none"},
             {"name": "snapshot_month",      "type": "dateTime","summarize": "none", "formatString": "yyyy-MM-dd"},
             {"name": "created_by",          "type": "string"},
-            {"name": "created_at",          "type": "string"},
+            {"name": "created_at",          "type": "timestamp"},
             {"name": "parent_version_id",   "type": "string"},
             {"name": "override_delta_tons", "type": "double"},
             {"name": "market_scale_factor", "type": "double"},
@@ -358,7 +360,7 @@ TABLES = {
             {"name": "rmse",           "type": "double", "summarize": "none"},
             {"name": "mae",            "type": "double", "summarize": "none"},
             {"name": "r2",             "type": "double", "summarize": "none"},
-            {"name": "evaluated_at",   "type": "string", "summarize": "none"},
+            {"name": "evaluated_at",   "type": "timestamp", "summarize": "none"},
         ],
         "measures": [
             {"name": "Avg MAPE %",  "expression": "AVERAGE('Accuracy Tracking'[mape])",  "formatString": "0.0"},

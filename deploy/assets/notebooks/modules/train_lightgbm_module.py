@@ -117,7 +117,7 @@ def train_lightgbm_global(df: pd.DataFrame, date_column: str, grain_columns: lis
     results = []
     for i, (_, row) in enumerate(test_pool.iterrows()):
         r = {
-            date_column: str(row["period"]),
+            date_column: pd.to_datetime(row["period"]).date(),
             "actual": float(row[target_column]),
             "predicted": float(test_preds[i]),
             "model_type": "lightgbm",

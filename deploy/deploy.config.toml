@@ -184,3 +184,16 @@ n_markets           = 4
 n_production_lines  = 10
 history_periods     = 104
 seed                = 42
+
+# ── CI/CD Integration ─────────────────────────────────────────────
+# When enabled, the deployment script will connect the Fabric workspace
+# to the specified Git repository for automated sync.
+
+[cicd]
+enabled               = false
+provider              = ""          # "github" or "azure-devops"
+organization_name     = ""          # GitHub org or Azure DevOps org
+project_name          = ""          # Azure DevOps project (leave empty for GitHub)
+repository_name       = ""          # Repository name
+branch_name           = "main"      # Branch to sync
+directory_name        = "/"         # Root directory in repo for Fabric items

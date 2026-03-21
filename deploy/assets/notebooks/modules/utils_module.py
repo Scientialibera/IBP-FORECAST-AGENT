@@ -48,7 +48,7 @@ def generate_version_id() -> str:
 
 def current_snapshot_label() -> str:
     """Return the current snapshot label for tagging (format from freq_params)."""
-    return datetime.utcnow().strftime(freq_params("snapshot_fmt"))
+    return datetime.utcnow().date()
 
 
 def log_metrics_to_mlflow(metrics: dict, prefix: str = "") -> None:

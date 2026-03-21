@@ -45,7 +45,7 @@ actuals_df = read_lakehouse_table(spark, bronze_lakehouse_id, primary_table).toP
 logger.info(f"[reporting] Actuals ({primary_table}): {len(actuals_df)} rows")
 
 if "period_date" in actuals_df.columns and "period" not in actuals_df.columns:
-    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period(cfg("frequency")).apply(lambda p: p.start_time.strftime("%Y-%m-%d"))
+    actuals_df["period"] = pd.to_datetime(actuals_df["period_date"]).dt.to_period(cfg("frequency")).apply(lambda p: p.start_time.date())
 
 date_col = "period" if "period" in fc_df.columns else "period_date"
 actuals_agg = actuals_df.groupby(grain_columns + [date_col], as_index=False)[target_column].sum()
@@ -84,7 +84,7 @@ reporting.loc[mask, "pct_error"] = reporting.loc[mask, "abs_error"] / reporting.
 reporting.loc[mask, "variance"] = reporting.loc[mask, "forecast_tons"] - reporting.loc[mask, "actual_tons"]
 
 reporting["is_future"] = reporting["actual_tons"].isna() & reporting["forecast_tons"].notna()
-reporting["snapshot_date"] = datetime.utcnow().strftime("%Y-%m-%d")
+reporting["snapshot_date"] = datetime.utcnow().date()
 
 write_lakehouse_table(spark.createDataFrame(reporting), gold_lakehouse_id, reporting_table, mode="overwrite")
 logger.info(f"[reporting] Wrote {len(reporting)} reporting rows to gold.{reporting_table}")
@@ -113,7 +113,7 @@ if backtest_frames:
     # Normalize period to string for consistency
     if "period" not in backtest.columns and "period_date" in backtest.columns:
         backtest["period"] = backtest["period_date"]
-    backtest["period"] = pd.to_datetime(backtest["period"], format="mixed").dt.strftime("%Y-%m-%d")
+    backtest["period"] = pd.to_datetime(backtest["period"], format="mixed").dt.date
     backtest["error"] = backtest["predicted"] - backtest["actual"]
     backtest["abs_error"] = backtest["error"].abs()
     backtest["pct_error"] = (backtest["abs_error"] / backtest["actual"].replace(0, np.nan))

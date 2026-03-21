@@ -2,6 +2,11 @@
 # 11_accuracy_tracking.py -- Compare prior forecast snapshots to actuals
 # Phase 1: Core Capability -- Objective accuracy measurement
 
+# @parameters
+gold_lakehouse_id = ""
+bronze_lakehouse_id = ""
+# @end_parameters
+
 # %run ../modules/ibp_config
 # %run ../modules/config_module
 # %run ../modules/utils_module
@@ -10,8 +15,8 @@
 # %run ../modules/accuracy_module
 
 
-gold_lakehouse_id = resolve_lakehouse_id("", "gold")
-bronze_lakehouse_id = resolve_lakehouse_id("", "bronze")
+gold_lakehouse_id = resolve_lakehouse_id(gold_lakehouse_id, "gold")
+bronze_lakehouse_id = resolve_lakehouse_id(bronze_lakehouse_id, "bronze")
 
 forecast_table = cfg("output_table")
 accuracy_table = cfg("accuracy_table")
@@ -42,7 +47,7 @@ else:
     actuals_agg = aggregate_to_grain(
         actuals_pdf, cfg("date_column"), grain_columns, target_column, [], cfg("frequency")
     )
-    actuals_agg["period"] = pd.to_datetime(actuals_agg["period"]).dt.strftime("%Y-%m-%d")
+    actuals_agg["period"] = pd.to_datetime(actuals_agg["period"]).dt.date
 
     all_accuracy_frames = []
 
@@ -55,7 +60,7 @@ else:
         logger.info(f"[accuracy] Evaluating '{vtype}': {len(vtype_df)} rows, "
                     f"{vtype_df['snapshot_month'].nunique()} snapshots")
 
-        vtype_df["period"] = pd.to_datetime(vtype_df["period"]).dt.strftime("%Y-%m-%d")
+        vtype_df["period"] = pd.to_datetime(vtype_df["period"]).dt.date
 
         fc_col = "forecast_tons"
         if vtype == "consensus" and "final_forecast_tons" in vtype_df.columns:

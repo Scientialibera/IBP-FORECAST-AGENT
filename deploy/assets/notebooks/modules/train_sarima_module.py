@@ -96,7 +96,7 @@ def train_sarima_per_grain(df: pd.DataFrame, date_column: str, grain_columns: li
             test_dates = group.sort_values(date_column)["period"].iloc[split_idx:].values
             n_preds = min(len(result["predictions"]), len(test_dates))
             for j in range(n_preds):
-                row = {date_column: str(test_dates[j]), "actual": float(series.iloc[split_idx + j]),
+                row = {date_column: pd.to_datetime(test_dates[j]).date(), "actual": float(series.iloc[split_idx + j]),
                        "predicted": result["predictions"][j], "model_type": "sarima"}
                 for k, col in enumerate(grain_columns):
                     row[col] = grain_key[k] if k < len(grain_key) else ""

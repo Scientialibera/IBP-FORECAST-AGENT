@@ -1,0 +1,45 @@
+# Azure DevOps pipeline for IBP Forecast Agent deployment to Microsoft Fabric
+#
+# Prerequisites:
+#   1. Create a service connection to Azure (type: Azure Resource Manager)
+#   2. Set these pipeline variables (or variable group):
+#      - AZURE_SERVICE_CONNECTION  : Name of the Azure service connection
+#      - FABRIC_WORKSPACE_ID       : (optional) Target Fabric workspace ID
+#
+# Usage:
+#   Copy this file to your repo and create a pipeline pointing to it,
+#   or reference it from your main azure-pipelines.yml.
+
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - deploy/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  pythonVersion: '3.11'
+
+stages:
+  - stage: Deploy
+    displayName: 'Deploy to Fabric'
+    jobs:
+      - job: DeployFabric
+        displayName: 'Run deploy-fabric.ps1'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - task: AzureCLI@2
+            displayName: 'Deploy IBP Forecast'
+            inputs:
+              azureSubscription: '$(AZURE_SERVICE_CONNECTION)'
+              scriptType: 'pscore'
+              scriptLocation: 'scriptPath'
+              scriptPath: '$(Build.SourcesDirectory)/deploy/deploy-fabric.ps1'

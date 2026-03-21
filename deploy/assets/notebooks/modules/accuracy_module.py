@@ -60,7 +60,7 @@ def evaluate_forecast_accuracy(forecast_df: pd.DataFrame,
             "rmse": metrics.get("rmse"),
             "mae": metrics.get("mae"),
             "r2": metrics.get("r2"),
-            "evaluated_at": datetime.utcnow().isoformat(),
+            "evaluated_at": datetime.utcnow(),
         }
         records.append(record)
 

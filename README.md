@@ -285,25 +285,37 @@ Notebook `14_build_reporting_view` copies `master_sku` and `master_plant` from b
 
 Notebook `16_create_report` creates or updates a Power BI report (PBIR-Legacy format) via the Fabric REST API and places it in the `reports/` folder. The report layout was designed manually in Power BI and extracted via the `getDefinition` API. The full `report.json` and base theme (`CY25SU11`) are embedded directly in the notebook as readable JSON — no external files or base64 blobs in source.
 
-The report is bound to the semantic model and has two pages:
+The report is bound to the semantic model and has four pages:
 
 **Page 1 — Summary (Backtest Overview)**
-- **4 slicers**: model_type (button), plant_id, sku_id, period (dropdowns)
+- **5 slicers**: model_type (button), plant_id, sku_id (dropdowns), period (range)
 - **5 KPI cards**: Backtest MAPE %, Total Actual, Total Predicted, Avg Absolute Error, Avg % Error
 - **Line chart**: Total Actual vs Total Predicted over time
 - **Bar chart**: Actual vs Predicted by model type
 - **Bar chart**: Actual vs Predicted by plant
-- **Detail table**: model_type, plant_id, sku_id, actual, predicted, abs_error, pct_error (sorted by highest error)
-
-**Page 2 — Error Diagnostics**
-- **4 slicers**: model_type (button), plant_id, sku_id, period (dropdowns)
-- **Line chart**: Sum of abs_error over time by model type
-- **Bar chart**: Backtest MAPE % by model type
 - **Detail table**: model_type, plant_id, sku_id, actual, predicted, abs_error, pct_error
+
+**Page 2 — Period Predictions**
+- **4 slicers**: model_type (button), plant_id, sku_id (dropdowns), period (range)
+- **Line chart**: Baseline tons over time by model type (Forecast Waterfall)
+- **Bar chart**: Baseline tons by model type
+- **Detail table**: model_type, plant_id, sku_id, period, baseline_tons, override_delta_tons, market_scale_factor, consensus_tons
+
+**Page 3 — Backtest Error Diagnostics**
+- **4 slicers**: model_type (button), plant_id, sku_id (dropdowns), period (range)
+- **Line chart**: Average abs_error over time by model type
+- **Bar chart**: Backtest MAPE % by model type
+- **Detail table**: model_type, plant_id, sku_id, period, actual, predicted, abs_error, pct_error
+
+**Page 4 — Model Evaluation**
+- **6 slicers**: model_type (button), plant_id, sku_id (dropdowns), period (range), is_future (toggle)
+- **Line chart**: Forecast vs Actual tons over time (Reporting Actuals vs Forecast)
+- **Bar chart**: Forecast vs Actual by model type
+- **Detail table**: all fields + MAPE %, Bias %, variance, snapshot_date
 
 To update the layout: redesign in Power BI service, extract via `getDefinition` API, and replace the embedded JSON in the notebook.
 
-The report is create-only -- if the report already exists in the workspace, the notebook skips the definition update to preserve any manual edits made in the Power BI service. Delete the report from Fabric to force re-creation from the embedded definition.
+If the report already exists in the workspace, the notebook updates its definition to match the embedded source. To preserve manual edits, remove the `updateDefinition` call.
 
 ## Accuracy Tracking: Predictions vs Actuals
 
@@ -408,6 +420,8 @@ Changing `frequency` in the config automatically adapts every derived parameter 
 | `prophet_yearly_seasonality` | `True` | Enable yearly seasonality component |
 | `prophet_weekly_seasonality` | `False` | Enable weekly seasonality (disabled for monthly data) |
 | `prophet_changepoint_prior` | `0.30` | Flexibility of trend changepoints (higher = more flexible) |
+| `prophet_seasonality_mode` | `"multiplicative"` | Seasonality mode (`additive` or `multiplicative`) |
+| `prophet_yearly_fourier_order` | `5` | Fourier terms for yearly seasonality (lower = smoother) |
 
 ### VAR (Vector Autoregression)
 
@@ -707,6 +721,47 @@ After deployment, trigger pipelines from the Fabric UI or via the REST API:
 2. **`pl_ibp_train`** -- ingest, transform, feature engineer, train 5 models
 3. **`pl_ibp_score_and_refresh`** -- score, enrich gold, build reporting view, create/update semantic model + backtest report
 4. **`pl_ibp_phase2_advanced`** -- advanced analytics (run after Phase 1)
+
+## Data Types
+
+All date columns throughout the pipeline are stored as proper `DateType` in Delta Lake (not strings). This ensures correct sorting, filtering, and aggregation in both Spark and the Power BI semantic model.
+
+| Column | Spark Type | Semantic Model Type | Used In |
+|--------|-----------|-------------------|---------|
+| `period`, `period_date` | `DateType` | `dateTime` | All tables |
+| `snapshot_date`, `snapshot_month` | `DateType` | `dateTime` | Gold tables |
+| `shipped_date` | `DateType` | -- | Shipments (source) |
+| `created_at`, `evaluated_at` | `TimestampType` | -- | Versioning, accuracy |
+
+Type definitions are centralized in `schemas_module.py` via the `_SPARK_TYPE_MAP` dict and per-table column schemas. The semantic model BIM generator reads the same schemas.
+
+## CI/CD
+
+Pre-built pipeline templates for GitHub Actions and Azure DevOps are in `deploy/cicd/`. See `deploy/cicd/README.md` for setup instructions.
+
+### Configuration
+
+The `[cicd]` section in `deploy.config.toml` controls optional Fabric Git integration:
+
+```toml
+[cicd]
+enabled           = false          # set to true to enable
+provider          = ""             # "github" or "azure-devops"
+organization_name = ""             # GitHub org or Azure DevOps org
+project_name      = ""             # Azure DevOps project (leave empty for GitHub)
+repository_name   = ""             # Repository name
+branch_name       = "main"         # Branch to sync
+directory_name    = "/"            # Root directory in repo for Fabric items
+```
+
+When `enabled = false` (the default), the deployment script runs without any Git integration. Set to `true` and fill in the required fields to connect your Fabric workspace to a Git repository.
+
+### Templates
+
+| File | Platform | Trigger |
+|------|----------|---------|
+| `deploy/cicd/github-actions-deploy.yml` | GitHub Actions | Push to `main` under `deploy/**` or manual |
+| `deploy/cicd/azure-pipelines-deploy.yml` | Azure DevOps | Push to `main` under `deploy/*` |
 
 ## Design Principles
 

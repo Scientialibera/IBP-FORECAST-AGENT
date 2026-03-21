@@ -20,7 +20,7 @@ def stamp_forecast_version(df: pd.DataFrame, version_type: str = "system",
     if "model_type" not in result.columns and model_type:
         result["model_type"] = model_type
     result["created_by"] = created_by
-    result["created_at"] = datetime.utcnow().isoformat()
+    result["created_at"] = datetime.utcnow()
     result["parent_version_id"] = parent_version_id
 
     if "override_delta_tons" not in result.columns:

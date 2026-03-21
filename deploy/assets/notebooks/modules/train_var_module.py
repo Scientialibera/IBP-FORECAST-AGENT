@@ -109,7 +109,7 @@ def train_var_per_grain(df: pd.DataFrame, date_column: str, grain_columns: list,
             test_rows = group_sorted.iloc[split_idx:]
             n_preds = min(len(result["predictions"]), len(test_rows))
             for j in range(n_preds):
-                row = {date_column: str(test_rows["period"].iloc[j]),
+                row = {date_column: pd.to_datetime(test_rows["period"].iloc[j]).date(),
                        "actual": float(test_rows[target_column].iloc[j]),
                        "predicted": result["predictions"][j], "model_type": "var"}
                 for k, col in enumerate(grain_columns):
