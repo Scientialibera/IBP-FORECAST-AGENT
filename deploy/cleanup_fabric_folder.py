@@ -34,8 +34,9 @@ import time
 CONFIG_PATH = pathlib.Path(__file__).parent / "deploy.config.toml"
 
 DELETE_ORDER = [
-    "DataPipeline",
+    "Report",
     "SemanticModel",
+    "DataPipeline",
     "Notebook",
     "MLExperiment",
     "MLModel",
@@ -145,10 +146,23 @@ def main():
 
     config = load_config()
     workspace_id = args.workspace_id or config.get("fabric", {}).get("workspace_id", "")
+    workspace_name = config.get("fabric", {}).get("workspace_name", "")
     folder_name = args.folder or config.get("naming", {}).get("project_folder", "IBP Forecast")
 
+    if not workspace_id and workspace_name:
+        print(f"Looking up workspace '{workspace_name}'...")
+        token = get_token()
+        data = api_get("https://api.fabric.microsoft.com/v1/workspaces", token)
+        for ws in data.get("value", []):
+            if ws["displayName"] == workspace_name:
+                workspace_id = ws["id"]
+                break
+        if not workspace_id:
+            print(f"ERROR: Workspace '{workspace_name}' not found.")
+            sys.exit(1)
+
     if not workspace_id:
-        print("ERROR: No workspace_id. Set in config or pass --workspace-id.")
+        print("ERROR: No workspace_id. Set in config, set workspace_name, or pass --workspace-id.")
         sys.exit(1)
 
     print(f"Workspace:     {workspace_id}")
@@ -217,6 +231,8 @@ def main():
         items = by_type.pop(item_type, [])
         if not items:
             continue
+        if item_type == "Notebook":
+            items.sort(key=lambda x: x["name"], reverse=True)
         print(f"\n--- Deleting {len(items)} {item_type}(s) ---")
         token = get_token()
         for item in items:

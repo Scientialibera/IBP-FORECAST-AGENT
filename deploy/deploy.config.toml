@@ -90,7 +90,7 @@ registered_model_prefix  = "ibp_model"
 # ── Scoring ──────────────────────────────────────────────────────
 
 [scoring]
-forecast_horizon  = 52
+forecast_horizon  = 12
 output_table      = "forecast_versions"
 metrics_table     = "model_metrics"
 
@@ -180,5 +180,5 @@ n_plants            = 5
 n_customers         = 20
 n_markets           = 4
 n_production_lines  = 10
-history_periods     = 156
+history_periods     = 104
 seed                = 42

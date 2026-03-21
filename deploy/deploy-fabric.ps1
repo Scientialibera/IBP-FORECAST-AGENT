@@ -338,6 +338,7 @@ python $convertScript `
     --bronze-id $bronzeId --bronze-name $config.lakehouses.bronze_name `
     --silver-id $silverId --silver-name $config.lakehouses.silver_name `
     --gold-id $goldId --gold-name $config.lakehouses.gold_name `
+    --naming-prefix $config.naming.prefix --naming-suffix $config.naming.suffix `
     --output-dir $buildDir
 
 # 4. Notebooks -- PARALLEL (deploy from build/ directory)

@@ -223,6 +223,8 @@ def main():
     parser.add_argument("--silver-name", default="lh_ibp_silver")
     parser.add_argument("--gold-id", default="")
     parser.add_argument("--gold-name", default="lh_ibp_gold")
+    parser.add_argument("--naming-prefix", default="")
+    parser.add_argument("--naming-suffix", default="")
     parser.add_argument("--output-dir", default=str(BUILD_DIR))
     args = parser.parse_args()
 
@@ -261,6 +263,23 @@ def main():
         print(f"  {str(rel):<50s}  {cell_count} cells  default_lh={lh}")
 
     print(f"\nConverted {len(files)} notebooks to {out_dir}")
+
+    if args.naming_prefix or args.naming_suffix:
+        cfg_path = out_dir / "modules" / "ibp_config.py"
+        if cfg_path.exists():
+            cfg_text = cfg_path.read_text(encoding="utf-8")
+            cfg_text = re.sub(
+                r'("naming_prefix":\s*)"[^"]*"',
+                rf'\1"{args.naming_prefix}"',
+                cfg_text,
+            )
+            cfg_text = re.sub(
+                r'("naming_suffix":\s*)"[^"]*"',
+                rf'\1"{args.naming_suffix}"',
+                cfg_text,
+            )
+            cfg_path.write_text(cfg_text, encoding="utf-8", newline="\r\n")
+            print(f"  Injected naming: prefix='{args.naming_prefix}' suffix='{args.naming_suffix}' into ibp_config")
 
 
 if __name__ == "__main__":
