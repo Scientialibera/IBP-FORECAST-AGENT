@@ -117,7 +117,11 @@ pl_train = pipeline("pl_ibp_train", train_acts)
 # ── 3. Scoring Pipeline (score → gold → reporting) ─────────────
 
 score_acts = [
-    nb_activity("05_score_forecast", "05_score_forecast"),
+    nb_activity("01_ingest_sources", "01_ingest_sources"),
+    nb_activity("02_transform_bronze", "02_transform_bronze",
+                depends_on=["01_ingest_sources"]),
+    nb_activity("05_score_forecast", "05_score_forecast",
+                depends_on=["02_transform_bronze"]),
     nb_activity("06_version_snapshot", "06_version_snapshot",
                 depends_on=["05_score_forecast"]),
     nb_activity("07_demand_to_capacity", "07_demand_to_capacity",

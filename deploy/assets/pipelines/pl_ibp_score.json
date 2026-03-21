@@ -3,9 +3,51 @@
   "properties": {
     "activities": [
       {
-        "name": "05_score_forecast",
+        "name": "01_ingest_sources",
         "type": "TridentNotebook",
         "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_01_ingest_sources}}",
+          "workspaceId": "{{WORKSPACE_ID}}"
+        }
+      },
+      {
+        "name": "02_transform_bronze",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "01_ingest_sources",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookId": "{{NB_02_transform_bronze}}",
+          "workspaceId": "{{WORKSPACE_ID}}"
+        }
+      },
+      {
+        "name": "05_score_forecast",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "02_transform_bronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
         "policy": {
           "timeout": "0.12:00:00",
           "retry": 1,

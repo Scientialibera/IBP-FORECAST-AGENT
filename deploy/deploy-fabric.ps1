@@ -331,15 +331,19 @@ $sourceId = $lakehouseIds["source"]; $landingId = $lakehouseIds["landing"]; $bro
 $buildDir = Join-Path (Join-Path $PSScriptRoot "build") "notebooks"
 Write-Host "`n[4/8] Converting notebooks with lakehouse bindings..." -ForegroundColor Yellow
 $convertScript = Join-Path $PSScriptRoot "convert_notebooks.py"
-python $convertScript `
-    --workspace-id $workspaceId `
-    --source-id $sourceId --source-name $config.source.source_lakehouse_name `
-    --landing-id $landingId --landing-name $config.lakehouses.landing_name `
-    --bronze-id $bronzeId --bronze-name $config.lakehouses.bronze_name `
-    --silver-id $silverId --silver-name $config.lakehouses.silver_name `
-    --gold-id $goldId --gold-name $config.lakehouses.gold_name `
-    --naming-prefix $config.naming.prefix --naming-suffix $config.naming.suffix `
-    --output-dir $buildDir
+$convertArgs = @(
+    $convertScript,
+    "--workspace-id", $workspaceId,
+    "--source-id", $sourceId, "--source-name", $config.source.source_lakehouse_name,
+    "--landing-id", $landingId, "--landing-name", $config.lakehouses.landing_name,
+    "--bronze-id", $bronzeId, "--bronze-name", $config.lakehouses.bronze_name,
+    "--silver-id", $silverId, "--silver-name", $config.lakehouses.silver_name,
+    "--gold-id", $goldId, "--gold-name", $config.lakehouses.gold_name,
+    "--output-dir", $buildDir
+)
+if ($config.naming.prefix) { $convertArgs += @("--naming-prefix", $config.naming.prefix) }
+if ($config.naming.suffix) { $convertArgs += @("--naming-suffix", $config.naming.suffix) }
+& python @convertArgs
 
 # 4. Notebooks -- PARALLEL (deploy from build/ directory)
 Write-Host "`n[5/8] Deploying module notebooks (parallel)..." -ForegroundColor Yellow

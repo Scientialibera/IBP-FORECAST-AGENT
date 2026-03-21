@@ -223,8 +223,8 @@ def main():
     parser.add_argument("--silver-name", default="lh_ibp_silver")
     parser.add_argument("--gold-id", default="")
     parser.add_argument("--gold-name", default="lh_ibp_gold")
-    parser.add_argument("--naming-prefix", default="")
-    parser.add_argument("--naming-suffix", default="")
+    parser.add_argument("--naming-prefix", nargs="?", default="", const="")
+    parser.add_argument("--naming-suffix", nargs="?", default="", const="")
     parser.add_argument("--output-dir", default=str(BUILD_DIR))
     args = parser.parse_args()
 
