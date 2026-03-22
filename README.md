@@ -16,6 +16,10 @@ Lakehouse-driven, AI-powered IBP (Integrated Business Planning) forecasting fram
 |---|---|
 | ![Summary page](docs/screenshots/report_0.png) | ![Error diagnostics page](docs/screenshots/report_1.png) |
 
+| Period Predictions | Model Evaluation |
+|---|---|
+| ![Period Predictions page](docs/screenshots/report_3.png) | ![Model Evaluation page](docs/screenshots/report_4.png) |
+
 ## Architecture
 
 ```mermaid
